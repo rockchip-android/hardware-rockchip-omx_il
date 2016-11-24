@@ -59,7 +59,6 @@ enum {
     kFenceTimeoutMs = 1000
 };
 
-
 using namespace android;
 
 #ifdef __cplusplus
@@ -839,6 +838,10 @@ OMX_ERRORTYPE Rockchip_OSAL_GetInfoFromMetaData(OMX_IN OMX_BYTE pBuffer,
                 return OMX_ErrorBadParameter;
             }
         }
+    }else if(type == kMetadataBufferTypeNativeHandleSource){
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "kMetadataBufferTypeNativeHandleSource process in");
+        VideoNativeHandleMetadata &nativehandleMeta = *(VideoNativeHandleMetadata*)pBuffer;
+        ppBuf[0] = (OMX_PTR)nativehandleMeta.pHandle;
     }
 #endif
 
