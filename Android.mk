@@ -9,9 +9,9 @@ else
 endif
 
 ifeq ($(strip $(BOARD_USE_DRM)), true)
-	OMX_USE_DRM := false
+	OMX_USE_DRM := true
 else
-      	OMX_USE_DRM := false
+	OMX_USE_DRM := false
 endif
 
 include $(CLEAR_VARS)
