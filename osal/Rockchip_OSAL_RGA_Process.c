@@ -415,8 +415,8 @@ void rga_rgb2nv12(RockchipVideoPlane *plane, VPUMemLinear_t *vpumem,
     if (ctx == NULL) {
         return;
     }
-    rga_set_info(&src, Width, Height, plane->stride, Height, plane->fd, HAL_PIXEL_FORMAT_RGBA_8888, (void *)plane->addr, plane->type);
-    rga_set_info(&dst, Width, Height, Width, Height, vpumem->phy_addr, HAL_PIXEL_FORMAT_YCrCb_NV12, (void *)vpumem->vir_addr, 0);
+    rga_set_info(&src, Width, Height, plane->stride, Height, plane->fd, RK_FORMAT_RGBA_8888, (void *)plane->addr, plane->type);
+    rga_set_info(&dst, Width, Height, Width, Height, vpumem->phy_addr, RK_FORMAT_YCbCr_420_SP, (void *)vpumem->vir_addr, 0);
     if (rga_convert(&src, &dst, ctx->rga_fd) < 0) {
         Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "rga_rgb2nv12 fail");
     }
