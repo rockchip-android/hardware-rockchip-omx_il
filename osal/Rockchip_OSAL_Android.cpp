@@ -889,6 +889,41 @@ EXIT:
     return ret;
 }
 
+OMX_ERRORTYPE Rockchip_OSAL_GetInfoRkWfdMetaDataExt(OMX_IN OMX_BYTE pBuffer)
+{
+    OMX_ERRORTYPE      ret = OMX_ErrorNone;
+    OMX_U32 flag;
+    FunctionIn();
+
+    /*
+     * meta data contains the following data format.
+     * payload depends on the MetadataBufferType
+     * --------------------------------------------------------------
+     * | MetadataBufferType                         |          payload                           |
+     * --------------------------------------------------------------
+     *
+     * If MetadataBufferType is kMetadataBufferTypeGrallocSource, then
+     * --------------------------------------------------------------
+     * | kMetadataBufferTypeGrallocSource  | ANativeWindowBuffer | WFD Flag(0x1234]
+     * --------------------------------------------------------------
+     */
+
+    /* WFD Flag */
+    Rockchip_OSAL_Memcpy(&flag, pBuffer+sizeof(VideoNativeMetadata), 4);
+    VideoNativeMetadata *metadata = (VideoNativeMetadata *)pBuffer;
+
+    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "flag=0x%x, type=%d",flag, metadata->eType);  
+
+    if (flag != 0x1234) {
+        return OMX_ErrorBadParameter;
+    }
+    
+EXIT:
+    FunctionOut();
+
+    return ret;
+}
+
 
 
 OMX_ERRORTYPE Rockchip_OSAL_SetPrependSPSPPSToIDR(

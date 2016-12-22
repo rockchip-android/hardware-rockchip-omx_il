@@ -92,6 +92,8 @@ OMX_ERRORTYPE Rockchip_OSAL_GetInfoFromMetaData(OMX_IN OMX_BYTE pBuffer,
                                                 OMX_OUT OMX_PTR *pOutBuffer);
 OMX_ERRORTYPE Rockchip_OSAL_GetInfoRkWfdMetaData(OMX_IN OMX_BYTE pBuffer,
                                                  OMX_OUT OMX_PTR *ppBuf);
+OMX_ERRORTYPE Rockchip_OSAL_GetInfoRkWfdMetaDataExt(OMX_IN OMX_BYTE pBuffer);
+
 
 OMX_ERRORTYPE Rockchip_OSAL_CheckANB(OMX_IN ROCKCHIP_OMX_DATA *pBuffer,
                                      OMX_OUT OMX_BOOL *bIsANBEnabled);
