@@ -418,7 +418,7 @@ OMX_ERRORTYPE Rkvpu_ProcessStoreMetaData(OMX_COMPONENTTYPE *pOMXComponent, OMX_B
             *aPhy_address = priv_hnd_wfd.share_fd;
         }
         *len = Width * Height * 4;
-        if (pInputBuffer->nFilledLen == 24) {
+        if ((pInputBuffer->nFilledLen == 24) || (pInputBuffer->nFilledLen == 8)){
             if (pVideoEnc->bPixel_format < 0) {
                 pVideoEnc->bPixel_format = priv_hnd_wfd.format;
                 if (pVideoEnc->bPixel_format == HAL_PIXEL_FORMAT_RGBA_8888) {
@@ -430,33 +430,6 @@ OMX_ERRORTYPE Rkvpu_ProcessStoreMetaData(OMX_COMPONENTTYPE *pOMXComponent, OMX_B
                 }
             }
         }
-    } else if (!Rockchip_OSAL_GetInfoRkWfdMetaDataExt(pInputBuffer->pBuffer)) {
-        RockchipVideoPlane vplanes;
-        OMX_COLOR_FORMATTYPE omx_format = 0;
-        OMX_U32 res;
-
-        if (pInputBuffer->nFilledLen != 8) {
-            Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "MetaData buffer is wrong size! "
-                              "(got %lu bytes, expected 8)", pInputBuffer->nFilledLen);
-            return OMX_ErrorBadParameter;
-        }
-        
-        if (Rockchip_OSAL_GetInfoFromMetaData(pInputBuffer->pBuffer, &pGrallocHandle)) {
-            return OMX_ErrorBadParameter;
-        }
-
-         res = Rockchip_OSAL_getANBHandle(pGrallocHandle, &vplanes);
-        if (res != 0) {
-            Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "%s: Unable to lock image buffer %p for access", __FUNCTION__,
-                              pGrallocHandle);
-            pGrallocHandle = NULL;
-            return OMX_ErrorBadParameter;
-        }
- 
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "%s: wfd process", __FUNCTION__);
-
-        *aPhy_address = vplanes.fd;
-        *len = Width * Height * 4;
     } else {
         RockchipVideoPlane vplanes;
         OMX_COLOR_FORMATTYPE omx_format = 0;

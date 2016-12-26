@@ -871,13 +871,25 @@ OMX_ERRORTYPE Rockchip_OSAL_GetInfoRkWfdMetaData(OMX_IN OMX_BYTE pBuffer,
      * | kMetadataBufferTypeCameraSource  | WFD(0x1234)(4byte)|VPU_MEM(4byte)|rga_fd(4byte)|buffer_handle_t ]
      * | share_fd
      * --------------------------------------------------------------
+     * else is kMetadataBufferANWSource, then
+     * --------------------------------------------------------------
+     * | kMetadataBufferTypeANW source | ANW | fence | WFD(0x1234)
+     * --------------------------------------------------------------
      */
 
     /* MetadataBufferType */
     Rockchip_OSAL_Memcpy(&type, pBuffer + 4, 4);
 
     if (type != 0x1234) {
-        return OMX_ErrorBadParameter;
+         Rockchip_OSAL_Memcpy(&type, pBuffer+sizeof(VideoNativeMetadata), 4);
+         VideoGrallocMetadata *metadata = (VideoGrallocMetadata *)pBuffer;
+         Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "###type=0x%x, bufftype=%d",type, metadata->eType);
+         if (type != 0x1234) {
+            return OMX_ErrorBadParameter;
+         }
+         pBufHandle = metadata->pHandle;
+         ppBuf[0] = (OMX_PTR)pBufHandle;
+         return ret;
     }
     /* buffer_handle_t */
     Rockchip_OSAL_Memcpy(&pBufHandle, pBuffer + 16, sizeof(buffer_handle_t));
@@ -888,43 +900,6 @@ EXIT:
 
     return ret;
 }
-
-OMX_ERRORTYPE Rockchip_OSAL_GetInfoRkWfdMetaDataExt(OMX_IN OMX_BYTE pBuffer)
-{
-    OMX_ERRORTYPE      ret = OMX_ErrorNone;
-    OMX_U32 flag;
-    FunctionIn();
-
-    /*
-     * meta data contains the following data format.
-     * payload depends on the MetadataBufferType
-     * --------------------------------------------------------------
-     * | MetadataBufferType                         |          payload                           |
-     * --------------------------------------------------------------
-     *
-     * If MetadataBufferType is kMetadataBufferTypeGrallocSource, then
-     * --------------------------------------------------------------
-     * | kMetadataBufferTypeGrallocSource  | ANativeWindowBuffer | WFD Flag(0x1234]
-     * --------------------------------------------------------------
-     */
-
-    /* WFD Flag */
-    Rockchip_OSAL_Memcpy(&flag, pBuffer+sizeof(VideoNativeMetadata), 4);
-    VideoNativeMetadata *metadata = (VideoNativeMetadata *)pBuffer;
-
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "flag=0x%x, type=%d",flag, metadata->eType);  
-
-    if (flag != 0x1234) {
-        return OMX_ErrorBadParameter;
-    }
-    
-EXIT:
-    FunctionOut();
-
-    return ret;
-}
-
-
 
 OMX_ERRORTYPE Rockchip_OSAL_SetPrependSPSPPSToIDR(
     OMX_PTR pComponentParameterStructure,
