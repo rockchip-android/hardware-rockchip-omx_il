@@ -238,8 +238,15 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
                     ret = OMX_FALSE;
                     goto EXIT;
                 }
+
                 Rockchip_OSAL_Memcpy(extraData, inputUseBuffer->bufferHeader->pBuffer + inputUseBuffer->usedDataLen,
                                      inputUseBuffer->dataLen);
+#ifdef WRITE_DEC_IN_FILE
+                if (pVideoDec->fp_in != NULL) {
+                    fwrite(extraData, 1, inputUseBuffer->dataLen, pVideoDec->fp_in);
+                    fflush(pVideoDec->fp_in);                    
+                }
+#endif
                 extraSize = inputUseBuffer->dataLen;
                 extraFlag = 1;
             }
@@ -281,6 +288,12 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
         Rockchip_OSAL_Memset(&pkt, 0, sizeof(VideoPacket_t));
         pkt.data =  inputUseBuffer->bufferHeader->pBuffer + inputUseBuffer->usedDataLen;
         pkt.size = inputUseBuffer->dataLen;
+#ifdef WRITE_DEC_IN_FILE
+        if (pVideoDec->fp_in != NULL) {
+            fwrite(pkt.data, 1, pkt.size, pVideoDec->fp_in);
+            fflush(pVideoDec->fp_in);                    
+        }
+#endif
         if (pVideoDec->flags & RKVPU_OMX_VDEC_USE_DTS) {
             pkt.pts = VPU_API_NOPTS_VALUE;
             pkt.dts = inputUseBuffer->timeStamp;
@@ -934,7 +947,9 @@ OMX_ERRORTYPE Rkvpu_Dec_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
     /*  if (pVideoDec->flags & RKVPU_OMX_VDEC_IS_DIV3) {
           p_vpu_ctx->videoCoding = OMX_RK_VIDEO_CodingDIVX3;
       }*/
-
+#ifdef WRITE_DEC_IN_FILE
+    pVideoDec->fp_in = fopen("data/video/dec_in.bin", "wb");
+#endif
 #ifdef WRITR_FILE
     pVideoDec->fp_out = fopen("data/video/dec_out.yuv", "wb");
 #endif
@@ -1278,7 +1293,11 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentDeInit(OMX_HANDLETYPE hComponent)
         Rockchip_OSAL_Free(pRockchipPort->portDefinition.format.video.cMIMEType);
         pRockchipPort->portDefinition.format.video.cMIMEType = NULL;
     }
-
+#ifdef WRITE_DEC_IN_FILE
+    if (pVideoDec->fp_in != NULL) {
+        fclose(pVideoDec->fp_in);
+    }
+#endif
     ret = Rockchip_OMX_Port_Destructor(pOMXComponent);
 
     ret = Rockchip_OMX_BaseComponent_Destructor(hComponent);

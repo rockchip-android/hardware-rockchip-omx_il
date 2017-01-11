@@ -16,7 +16,7 @@
  */
 
 /*
- * @file        Rkvpu_OMX_Vdec.c
+ * @file        Rkvpu_OMX_Venc.c
  * @brief
  * @author      csy (csy@rock-chips.com)
  * @version     2.0.0
@@ -92,6 +92,12 @@ typedef enum AVCLevel {
     AVC_LEVEL5_1 = 51
 } AVCLevel;
 
+typedef enum HEVCLevel {
+    HEVC_UNSUPPORT_LEVEL = -1,
+    HEVC_LEVEL4_1 = 0,
+    HEVC_LEVEL_MAX = 0x7FFFFFFF,
+} HEVCLevel;
+
 typedef struct {
     OMX_RK_VIDEO_CODINGTYPE codec_id;
     OMX_VIDEO_CODINGTYPE     omx_id;
@@ -101,6 +107,7 @@ typedef struct {
 static const CodeMap kCodeMap[] = {
     { OMX_RK_VIDEO_CodingAVC,   OMX_VIDEO_CodingAVC},
     { OMX_RK_VIDEO_CodingVP8,   OMX_VIDEO_CodingVP8},
+    { OMX_RK_VIDEO_CodingHEVC,  OMX_VIDEO_CodingHEVC},
 };
 
 int calc_plane(int width, int height)
@@ -583,6 +590,7 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
                 aInput.buf = NULL;
             } else {
                 aInput.buf =  inputUseBuffer->bufferHeader->pBuffer + inputUseBuffer->usedDataLen;
+                aInput.bufPhyAddr = -1;
             }
             aInput.size = inputUseBuffer->dataLen;
             aInput.timeUs = inputUseBuffer->timeStamp;
@@ -596,6 +604,7 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
                 aInput.buf = NULL;
             } else {
                 aInput.buf =  inputUseBuffer->bufferHeader->pBuffer + inputUseBuffer->usedDataLen;
+                aInput.bufPhyAddr = -1;
             }
             aInput.size = inputUseBuffer->dataLen;
             aInput.timeUs = inputUseBuffer->timeStamp;
@@ -1095,16 +1104,69 @@ static OMX_ERRORTYPE ConvertOmxAvcLevelToAvcSpecLevel(
     *pvLevel = level;
     return OMX_ErrorNone;
 }
+
+OMX_ERRORTYPE ConvertOmxHevcProfile2HalHevcProfile(
+    OMX_VIDEO_HEVCPROFILETYPE omxHevcProfile, HEVCEncProfile *halHevcProfile)
+{
+    HEVCEncProfile hevcProfile = HEVC_MAIN_PROFILE;
+    switch (omxHevcProfile) {
+        case OMX_VIDEO_HEVCProfileMain:
+            hevcProfile = HEVC_MAIN_PROFILE;
+            break;
+        case OMX_VIDEO_HEVCProfileMain10:
+            hevcProfile = HEVC_MAIN10_PROFILE;
+            break;
+        case OMX_VIDEO_HEVCProfileMain10HDR10:
+            hevcProfile = HEVC_MAIN10HDR10_PROFILE;
+            break;
+        default:
+            Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "Unknown omx profile: %d, forced to convert HEVC_MAIN_PROFILE", 
+                omxHevcProfile);
+            break;
+    }
+    *halHevcProfile = hevcProfile;
+    return OMX_ErrorNone;
+}
+
+OMX_ERRORTYPE ConvertOmxHevcLevel2HalHevcLevel(
+    OMX_VIDEO_HEVCLEVELTYPE omxHevcLevel, HEVCLevel *halHevcLevel)
+{
+    HEVCLevel hevcLevel = HEVC_LEVEL4_1;
+    switch (omxHevcLevel) {
+        case OMX_VIDEO_HEVCMainTierLevel41:
+            hevcLevel = HEVC_LEVEL4_1;
+            break;
+        default:
+            Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "Unknown omx level: %d, forced to convert HEVC_LEVEL4_1",
+                omxHevcLevel);
+            break;
+    }
+    *halHevcLevel = hevcLevel;
+    return OMX_ErrorNone;
+}
+
 OMX_ERRORTYPE omx_open_vpuenc_context(RKVPU_OMX_VIDEOENC_COMPONENT *pVideoEnc)
 {
-    pVideoEnc->rkapi_hdl = dlopen("/system/lib/librk_vpuapi.so", RTLD_LAZY);
+    pVideoEnc->rkapi_hdl = dlopen("/system/lib/libvpu.so", RTLD_LAZY);
     if (pVideoEnc->rkapi_hdl == NULL) {
         return OMX_ErrorHardware;
     }
     pVideoEnc->rkvpu_open_cxt = (OMX_S32 (*)(VpuCodecContext_t **ctx))dlsym(pVideoEnc->rkapi_hdl, "vpu_open_context");
     if (pVideoEnc->rkvpu_open_cxt == NULL) {
         dlclose(pVideoEnc->rkapi_hdl);
-        return OMX_ErrorHardware;
+        pVideoEnc->rkapi_hdl = NULL;
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_DEBUG,"used old version lib");
+        pVideoEnc->rkapi_hdl = dlopen("/system/lib/librk_vpuapi.so", RTLD_LAZY);
+        if (pVideoEnc->rkapi_hdl == NULL) {
+            Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "dll open fail system/lib/librk_vpuapi.so");
+            return OMX_ErrorHardware;
+        }
+        pVideoEnc->rkvpu_open_cxt = (OMX_S32 (*)(VpuCodecContext_t **ctx))dlsym(pVideoEnc->rkapi_hdl, "vpu_open_context");
+        if (pVideoEnc->rkvpu_open_cxt == NULL) {
+            Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "dlsym vpu_open_context fail");
+            dlclose( pVideoEnc->rkapi_hdl);
+            return OMX_ErrorHardware;
+        }
     }
     pVideoEnc->rkvpu_close_cxt = (OMX_S32 (*)(VpuCodecContext_t **ctx))dlsym(pVideoEnc->rkapi_hdl, "vpu_close_context");
     return OMX_ErrorNone;
@@ -1118,36 +1180,27 @@ OMX_ERRORTYPE Rkvpu_Enc_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
     OMX_RK_VIDEO_CODINGTYPE codecId = OMX_RK_VIDEO_CodingUnused;
     ROCKCHIP_OMX_BASEPORT           *pRockchipInputPort  = &pRockchipComponent->pRockchipPort[INPUT_PORT_INDEX];
     ROCKCHIP_OMX_BASEPORT           *pRockchipOutPort  = &pRockchipComponent->pRockchipPort[OUTPUT_PORT_INDEX];
-    VpuCodecContext_t *p_vpu_ctx = pVideoEnc->vpu_ctx;
+    VpuCodecContext_t               *p_vpu_ctx           = (VpuCodecContext_t *)Rockchip_OSAL_Malloc(sizeof(VpuCodecContext_t));
     EncParameter_t *EncParam = NULL;
     RK_U32 new_width = 0, new_height = 0;
     if (omx_open_vpuenc_context(pVideoEnc) != OMX_ErrorNone) {
         ret = OMX_ErrorInsufficientResources;
         goto EXIT;
     }
-    if (pVideoEnc->rkvpu_open_cxt) {
-        pVideoEnc->rkvpu_open_cxt(&p_vpu_ctx);
-    }
-    if (p_vpu_ctx == NULL) {
-        ret = OMX_ErrorInsufficientResources;
-        goto EXIT;
-    }
-    pVideoEnc->bCurrent_height = pRockchipInputPort->portDefinition.format.video.nFrameHeight;
-    pVideoEnc->bCurrent_width = pRockchipInputPort->portDefinition.format.video.nFrameWidth;
-    p_vpu_ctx->codecType = CODEC_ENCODER;
 
-    {
-        int32_t kNumMapEntries = sizeof(kCodeMap) / sizeof(kCodeMap[0]);
-        int i = 0;
-        for (i = 0; i < kNumMapEntries; i++) {
-            if (kCodeMap[i].omx_id == pVideoEnc->codecId) {
-                codecId = kCodeMap[i].codec_id;
-                break;
-            }
+    int32_t kNumMapEntries = sizeof(kCodeMap) / sizeof(kCodeMap[0]);
+    int i = 0;
+    for (i = 0; i < kNumMapEntries; i++) {
+        if (kCodeMap[i].omx_id == pVideoEnc->codecId) {
+            codecId = kCodeMap[i].codec_id;
+            break;
         }
     }
 
-    if (pVideoEnc->params_extend.bEnableScaling || pVideoEnc->params_extend.bEnableCropping) {
+    memset(p_vpu_ctx, 0, sizeof(VpuCodecContext_t));
+    pVideoEnc->bCurrent_height = pRockchipInputPort->portDefinition.format.video.nFrameHeight;
+    pVideoEnc->bCurrent_width = pRockchipInputPort->portDefinition.format.video.nFrameWidth;
+    if(pVideoEnc->params_extend.bEnableScaling || pVideoEnc->params_extend.bEnableCropping){
         if (pVideoEnc->params_extend.bEnableScaling) {
             new_width = pVideoEnc->params_extend.ui16ScaledWidth;
             new_height = pVideoEnc->params_extend.ui16ScaledHeight;
@@ -1164,18 +1217,32 @@ OMX_ERRORTYPE Rkvpu_Enc_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
             pVideoEnc->bCurrent_height =  new_height;
         }
     }
+
+    p_vpu_ctx->codecType = CODEC_ENCODER;
+    p_vpu_ctx->videoCoding = codecId;
     p_vpu_ctx->width =  pVideoEnc->bCurrent_width;
     p_vpu_ctx->height = pVideoEnc->bCurrent_height;
-    p_vpu_ctx->videoCoding = codecId;
-    p_vpu_ctx->codecType = CODEC_ENCODER;
+    if (pVideoEnc->rkvpu_open_cxt) {
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "open vpu context");
+        pVideoEnc->rkvpu_open_cxt(&p_vpu_ctx);
+    }
+    if (p_vpu_ctx == NULL) {
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR,"open vpu context fail!");
+        ret = OMX_ErrorInsufficientResources;
+        goto EXIT;
+    }
+
+    if (p_vpu_ctx->extra_cfg.reserved[0] == 1) {
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO,"use vpuapi.");
+        pVideoEnc->bIsUseMpp = OMX_FALSE;
+    } else {
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO,"use mpp.");
+        pVideoEnc->bIsUseMpp = OMX_TRUE;
+    }
     p_vpu_ctx->private_data = malloc(sizeof(EncParameter_t));
     memset(p_vpu_ctx->private_data, 0, sizeof(EncParameter_t));
     EncParam = (EncParameter_t*)p_vpu_ctx->private_data;
-    EncParam->height = pVideoEnc->bCurrent_height;
-    EncParam->width = pVideoEnc->bCurrent_width;
-    EncParam->bitRate = pRockchipOutPort->portDefinition.format.video.nBitrate;
-    EncParam->framerate = (pRockchipInputPort->portDefinition.format.video.xFramerate) >> 16;
-
+    Rkvpu_Enc_GetEncParams(pOMXComponent,&EncParam);
 
 #ifdef ENCODE_RATE_STATISTIC
     lastEncodeTime = 0;
@@ -1183,36 +1250,7 @@ OMX_ERRORTYPE Rkvpu_Enc_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
     lastEncodeFrameCount = 0;
     currentEncodeFrameCount = 0;
 #endif
-
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_DEBUG, "EncParam->intraPicRate = %d \n", EncParam->intraPicRate);
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_DEBUG, "EncParam.framerate  = %d outPort->sPortParam.format.video.xFramerate = %d %d",
-                      EncParam->framerate, pRockchipInputPort->portDefinition.format.video.xFramerate,
-                      pRockchipOutPort->portDefinition.format.video.nBitrate);
-
-
-    if (pVideoEnc->codecId == OMX_VIDEO_CodingAVC) {
-        EncParam->enableCabac   = 0;
-        EncParam->cabacInitIdc  = 0;
-        EncParam->intraPicRate  = pVideoEnc->AVCComponent[OUTPUT_PORT_INDEX].nPFrames;
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_DEBUG, " pVideoEnc->AVCComponent[OUTPUT_PORT_INDEX].eProfile  = %d ", pVideoEnc->AVCComponent[OUTPUT_PORT_INDEX].eProfile);
-        switch (pVideoEnc->AVCComponent[OUTPUT_PORT_INDEX].eProfile) {
-        case OMX_VIDEO_AVCProfileBaseline:
-            EncParam->profileIdc = BASELINE_PROFILE;
-            break;
-        case OMX_VIDEO_AVCProfileMain:
-            EncParam->profileIdc   = MAIN_PROFILE;
-            break;
-        case OMX_VIDEO_AVCProfileHigh:
-            EncParam->profileIdc   = HIGHT_PROFILE;
-            break;
-        default:
-            EncParam->profileIdc   = BASELINE_PROFILE;
-            break;
-        }
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_DEBUG, " EncParam->profileIdc  = %d ", EncParam->profileIdc);
-        ConvertOmxAvcLevelToAvcSpecLevel((int32_t)pVideoEnc->AVCComponent[OUTPUT_PORT_INDEX].eLevel, (AVCLevel *)&EncParam->levelIdc);
-    }
-
+    
     if (p_vpu_ctx) {
         if (p_vpu_ctx->init(p_vpu_ctx, NULL, 0)) {
             ret = OMX_ErrorInsufficientResources;
@@ -1229,11 +1267,26 @@ OMX_ERRORTYPE Rkvpu_Enc_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
         pVideoEnc->bLast_config_frame = 0;
         pVideoEnc->bSpsPpsHeaderFlag = OMX_FALSE;
         pVideoEnc->bSpsPpsbuf = NULL;
-        pVideoEnc->bSpsPpsbuf = (OMX_U8 *)Rockchip_OSAL_Malloc(2048);
-        Rockchip_OSAL_Memcpy(pVideoEnc->bSpsPpsbuf, p_vpu_ctx->extradata, p_vpu_ctx->extradata_size);
-        pVideoEnc->bSpsPpsLen = p_vpu_ctx->extradata_size;
+        if (pVideoEnc->codecId == (OMX_VIDEO_CODINGTYPE)OMX_VIDEO_CodingHEVC) {
+            pVideoEnc->bSpsPpsbuf = NULL;
+            pVideoEnc->bSpsPpsLen = 0;
+        }else {
+            if(p_vpu_ctx->extradata == NULL) {
+                Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR,"init get extradata fail!");
+                pVideoEnc->bSpsPpsbuf = NULL;
+                pVideoEnc->bSpsPpsLen = 0;
+                goto EXIT;
+            }else {
+                if((p_vpu_ctx->extradata != NULL) && p_vpu_ctx->extradata_size > 0 && p_vpu_ctx->extradata_size <= 2048){
+                    pVideoEnc->bSpsPpsbuf = (OMX_U8 *)Rockchip_OSAL_Malloc(2048);
+                    Rockchip_OSAL_Memcpy(pVideoEnc->bSpsPpsbuf, p_vpu_ctx->extradata, p_vpu_ctx->extradata_size);
+                    pVideoEnc->bSpsPpsLen = p_vpu_ctx->extradata_size;
+                }else{
+                    Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR,"p_vpu_ctx->extradata = %p,p_vpu_ctx->extradata_size = %d",p_vpu_ctx->extradata,p_vpu_ctx->extradata_size);
+                }
+            }
+        }
     }
-
     pVideoEnc->bEncSendEos = OMX_FALSE;
     pVideoEnc->enc_vpumem = NULL;
     pVideoEnc->enc_vpumem = (VPUMemLinear_t*)Rockchip_OSAL_Malloc(sizeof( VPUMemLinear_t));
@@ -1264,6 +1317,113 @@ OMX_ERRORTYPE Rkvpu_Enc_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
 EXIT:
     FunctionOut();
 
+    return ret;
+}
+
+OMX_ERRORTYPE Rkvpu_Enc_GetEncParams(OMX_COMPONENTTYPE *pOMXComponent,EncParameter_t **encParams)
+{
+    OMX_ERRORTYPE                  ret               = OMX_ErrorNone;
+    ROCKCHIP_OMX_BASECOMPONENT      *pRockchipComponent  = (ROCKCHIP_OMX_BASECOMPONENT *)pOMXComponent->pComponentPrivate;
+    RKVPU_OMX_VIDEOENC_COMPONENT    *pVideoEnc         = (RKVPU_OMX_VIDEOENC_COMPONENT *)pRockchipComponent->hComponentHandle;
+    ROCKCHIP_OMX_BASEPORT           *pRockchipInputPort  = &pRockchipComponent->pRockchipPort[INPUT_PORT_INDEX];
+    ROCKCHIP_OMX_BASEPORT           *pRockchipOutputPort = &pRockchipComponent->pRockchipPort[OUTPUT_PORT_INDEX];
+    FunctionIn();
+
+    (*encParams)->height = pVideoEnc->bCurrent_height;
+    (*encParams)->width = pVideoEnc->bCurrent_width;
+    (*encParams)->bitRate = pRockchipOutputPort->portDefinition.format.video.nBitrate;
+    (*encParams)->framerate = (pRockchipInputPort->portDefinition.format.video.xFramerate) >> 16;
+
+    if (pVideoEnc->codecId == OMX_VIDEO_CodingAVC) {
+        (*encParams)->enableCabac   = 0;
+        (*encParams)->cabacInitIdc  = 0;
+        (*encParams)->intraPicRate  = pVideoEnc->AVCComponent[OUTPUT_PORT_INDEX].nPFrames;
+        switch (pVideoEnc->AVCComponent[OUTPUT_PORT_INDEX].eProfile) {
+        case OMX_VIDEO_AVCProfileBaseline:
+            (*encParams)->profileIdc = BASELINE_PROFILE;
+            break;
+        case OMX_VIDEO_AVCProfileMain:
+            (*encParams)->profileIdc   = MAIN_PROFILE;
+            break;
+        case OMX_VIDEO_AVCProfileHigh:
+            (*encParams)->profileIdc   = HIGHT_PROFILE;
+            break;
+        default:
+            (*encParams)->profileIdc   = BASELINE_PROFILE;
+            break;
+        }
+        ConvertOmxAvcLevelToAvcSpecLevel((int32_t)pVideoEnc->AVCComponent[OUTPUT_PORT_INDEX].eLevel, (AVCLevel *)&((*encParams)->levelIdc));
+    }else if (pVideoEnc->codecId == (OMX_VIDEO_CODINGTYPE)OMX_VIDEO_CodingHEVC) {
+        (*encParams)->enableCabac   = 0;
+        (*encParams)->cabacInitIdc  = 0;
+        (*encParams)->intraPicRate  = pVideoEnc->HEVCComponent[OUTPUT_PORT_INDEX].nKeyFrameInterval;
+
+        ConvertOmxHevcProfile2HalHevcProfile(pVideoEnc->HEVCComponent[OUTPUT_PORT_INDEX].eProfile, 
+                                             (HEVCEncProfile *)&((*encParams)->profileIdc));
+        ConvertOmxHevcLevel2HalHevcLevel(pVideoEnc->HEVCComponent[OUTPUT_PORT_INDEX].eLevel, 
+                                         (HEVCLevel *)&((*encParams)->levelIdc));
+        switch (pVideoEnc->eControlRate[OUTPUT_PORT_INDEX]) {
+            case OMX_Video_ControlRateDisable:
+                (*encParams)->rc_mode = Video_RC_Mode_Disable;
+            break;
+            case OMX_Video_ControlRateVariable:
+                (*encParams)->rc_mode = Video_RC_Mode_VBR;
+            break;
+            case OMX_Video_ControlRateConstant:
+                (*encParams)->rc_mode = Video_RC_Mode_CBR;
+            break;
+            default:
+                Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "unknown rate control mode = %d, forced to VBR mode", 
+                    pVideoEnc->eControlRate[OUTPUT_PORT_INDEX]);
+                (*encParams)->rc_mode = Video_RC_Mode_VBR;
+            break;
+        }
+    }
+
+    switch (pRockchipInputPort->portDefinition.format.video.eColorFormat) {
+        case OMX_COLOR_FormatAndroidOpaque: {
+            (*encParams)->rc_mode = Video_RC_Mode_VBR;
+            (*encParams)->format = VPU_H264ENC_RGB888;
+        }
+        break;
+        case OMX_COLOR_FormatYUV420Planar: {
+            (*encParams)->format = VPU_H264ENC_YUV420_PLANAR;
+        }
+        break;
+        case OMX_COLOR_FormatYUV420SemiPlanar: {
+            (*encParams)->format = VPU_H264ENC_YUV420_SEMIPLANAR;
+        }
+        break;
+        default:
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR,"inputPort colorformat is not support format = %d",
+                     pRockchipInputPort->portDefinition.format.video.eColorFormat);
+        break;
+    }
+    
+    Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "encode params init settings:\n"
+                                         "width = %d\n"
+                                         "height = %d\n"
+                                         "bitRate = %d\n"
+                                         "framerate = %d\n"
+                                         "format = %d\n"
+                                         "enableCabac = %d,\n"
+                                         "cabacInitIdc = %d,\n"
+                                         "intraPicRate = %d,\n"
+                                         "profileIdc = %d,\n"
+                                         "levelIdc = %d,\n"
+                                         "rc_mode = %d,\n",
+                                         (int)(*encParams)->width,
+                                         (int)(*encParams)->height,
+                                         (int)(*encParams)->bitRate,
+                                         (int)(*encParams)->framerate,
+                                         (int)(*encParams)->format,
+                                         (int)(*encParams)->enableCabac,
+                                         (int)(*encParams)->cabacInitIdc,
+                                         (int)(*encParams)->profileIdc,
+                                         (int)(*encParams)->levelIdc,
+                                         (int)(*encParams)->rc_mode);
+
+    FunctionOut();
     return ret;
 }
 
@@ -1490,6 +1650,19 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentConstructor(OMX_HANDLETYPE hComponent, OMX_S
         Rockchip_OSAL_Strcpy(pRockchipPort->portDefinition.format.video.cMIMEType, "video/x-vnd.on2.vp8");
         pVideoEnc->codecId = OMX_VIDEO_CodingVP8;
         pRockchipPort->portDefinition.format.video.eCompressionFormat = OMX_VIDEO_CodingVP8;
+    } else if (!strcmp(componentName, RK_OMX_COMPONENT_HEVC_ENC)) {
+        int i = 0;
+        Rockchip_OSAL_Memset(pRockchipPort->portDefinition.format.video.cMIMEType, 0, MAX_OMX_MIMETYPE_SIZE);
+        Rockchip_OSAL_Strcpy(pRockchipPort->portDefinition.format.video.cMIMEType, "video/hevc");
+        for (i = 0; i < ALL_PORT_NUM; i++) {
+            INIT_SET_SIZE_VERSION(&pVideoEnc->HEVCComponent[i], OMX_VIDEO_PARAM_HEVCTYPE);
+            pVideoEnc->HEVCComponent[i].nPortIndex = i;
+            pVideoEnc->HEVCComponent[i].eProfile   = OMX_VIDEO_HEVCProfileMain;
+            pVideoEnc->HEVCComponent[i].eLevel     = OMX_VIDEO_HEVCMainTierLevel41;
+            pVideoEnc->HEVCComponent[i].nKeyFrameInterval = 20;
+        }
+        pVideoEnc->codecId = OMX_VIDEO_CodingHEVC;
+        pRockchipPort->portDefinition.format.video.eCompressionFormat = OMX_VIDEO_CodingHEVC;
     } else {
         // IL client specified an invalid component name
         Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "VPU Component Invalid Component Name\n");

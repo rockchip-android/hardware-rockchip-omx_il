@@ -34,6 +34,7 @@
 #include "Rockchip_OMX_Basecomponent.h"
 #include "library_register.h"
 #include "vpu_global.h"
+#include "OMX_VideoExt.h"
 
 #ifdef __cplusplus
 extern "C" {

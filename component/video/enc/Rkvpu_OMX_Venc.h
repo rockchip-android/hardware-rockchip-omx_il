@@ -34,6 +34,7 @@
 #include "Rockchip_OMX_Baseport.h"
 #include "Rockchip_OMX_Basecomponent.h"
 #include "OMX_Video.h"
+#include "OMX_VideoExt.h"
 #include "vpu_api.h"
 
 #define MAX_VIDEOENC_INPUTBUFFER_NUM           2
@@ -55,6 +56,8 @@ typedef struct _RKVPU_OMX_VIDEOENC_COMPONENT {
     OMX_BOOL bFirstFrame;
 
     OMX_VIDEO_PARAM_AVCTYPE AVCComponent[ALL_PORT_NUM];
+
+    OMX_VIDEO_PARAM_HEVCTYPE HEVCComponent[ALL_PORT_NUM];
 
     /* Buffer Process */
     OMX_BOOL       bExitBufferProcessThread;
@@ -116,6 +119,8 @@ typedef struct _RKVPU_OMX_VIDEOENC_COMPONENT {
     FILE *fp_rgb;
     FILE *fp_h264;
 #endif
+    //add by xlm for use mpp or vpuapi
+    OMX_BOOL bIsUseMpp;
     OMX_S32 (*rkvpu_open_cxt)(VpuCodecContext_t **ctx);
     OMX_S32 (*rkvpu_close_cxt)(VpuCodecContext_t **ctx);
 
@@ -141,6 +146,8 @@ OMX_ERRORTYPE Rkvpu_OMX_InputBufferProcess(OMX_HANDLETYPE hComponent);
 OMX_ERRORTYPE Rkvpu_OMX_OutputBufferProcess(OMX_HANDLETYPE hComponent);
 OMX_ERRORTYPE Rkvpu_Enc_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent);
 OMX_ERRORTYPE Rkvpu_Enc_Terminate(OMX_COMPONENTTYPE *pOMXComponent);
+OMX_ERRORTYPE Rkvpu_Enc_GetEncParams(OMX_COMPONENTTYPE *pOMXComponent,EncParameter_t **encParams);
+
 
 OMX_ERRORTYPE Rockchip_OMX_ComponentConstructor(OMX_HANDLETYPE hComponent, OMX_STRING componentName);
 OMX_ERRORTYPE Rockchip_OMX_ComponentDeInit(OMX_HANDLETYPE hComponent);

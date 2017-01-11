@@ -33,14 +33,17 @@
 
 
 #define OSCL_EXPORT_REF __attribute__((visibility("default")))
-#define MAX_COMPONENT_NUM       2
-#define MAX_COMPONENT_ROLE_NUM  2
+#define MAX_COMPONENT_NUM       3
+#define MAX_COMPONENT_ROLE_NUM  3
 
 #define RK_OMX_COMPONENT_H264_ENC "OMX.rk.video_encoder.avc"
 #define RK_OMX_COMPONENT_H264_ENC_ROLE "video_encoder.avc"
 
 #define RK_OMX_COMPONENT_VP8_ENC "OMX.rk.video_encoder.vp8"
 #define RK_OMX_COMPONENT_VP8_ENC_ROLE "video_encoder.vp8"
+
+#define RK_OMX_COMPONENT_HEVC_ENC "OMX.rk.video_encoder.hevc"
+#define RK_OMX_COMPONENT_HEVC_ENC_ROLE "video_encoder.hevc"
 
 #ifdef __cplusplus
 extern "C" {

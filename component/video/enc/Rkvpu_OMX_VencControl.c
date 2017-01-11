@@ -1148,8 +1148,9 @@ OMX_ERRORTYPE Rkvpu_OMX_GetParameter(
             Rockchip_OSAL_Strcpy((char *)pComponentRole->cRole, RK_OMX_COMPONENT_H264_ENC_ROLE);
         } else if (pVideoEnc->codecId == OMX_VIDEO_CodingVP8) {
             Rockchip_OSAL_Strcpy((char *)pComponentRole->cRole, RK_OMX_COMPONENT_VP8_ENC_ROLE);
+        } else if (pVideoEnc->codecId == OMX_VIDEO_CodingHEVC) {
+            Rockchip_OSAL_Strcpy((char *)pComponentRole->cRole, RK_OMX_COMPONENT_HEVC_ENC_ROLE);
         }
-
     }
     break;
     case OMX_IndexParamVideoAvc: {
@@ -1171,6 +1172,25 @@ OMX_ERRORTYPE Rkvpu_OMX_GetParameter(
         Rockchip_OSAL_Memcpy(pDstAVCComponent, pSrcAVCComponent, sizeof(OMX_VIDEO_PARAM_AVCTYPE));
     }
     break;
+    case OMX_IndexParamVideoHevc: {
+        OMX_VIDEO_PARAM_HEVCTYPE *pDstHEVCComponent = (OMX_VIDEO_PARAM_HEVCTYPE *)ComponentParameterStructure;
+        OMX_VIDEO_PARAM_HEVCTYPE *pSrcHEVCComponent = NULL;
+        RKVPU_OMX_VIDEOENC_COMPONENT *pVideoEnc = (RKVPU_OMX_VIDEOENC_COMPONENT *)pRockchipComponent->hComponentHandle;
+
+        ret = Rockchip_OMX_Check_SizeVersion(pDstHEVCComponent, sizeof(OMX_VIDEO_PARAM_HEVCTYPE));
+        if (ret != OMX_ErrorNone) {
+            goto EXIT;
+        }
+
+        if (pDstHEVCComponent->nPortIndex >= ALL_PORT_NUM) {
+            ret = OMX_ErrorBadPortIndex;
+            goto EXIT;
+        }
+
+        pSrcHEVCComponent = &pVideoEnc->HEVCComponent[pDstHEVCComponent->nPortIndex];
+        Rockchip_OSAL_Memcpy(pDstHEVCComponent, pSrcHEVCComponent, sizeof(OMX_VIDEO_PARAM_HEVCTYPE));
+    }
+    break;
     case OMX_IndexParamVideoProfileLevelQuerySupported: {
         OMX_VIDEO_PARAM_PROFILELEVELTYPE *profileLevel =
             (OMX_VIDEO_PARAM_PROFILELEVELTYPE *) ComponentParameterStructure;
@@ -1180,20 +1200,23 @@ OMX_ERRORTYPE Rkvpu_OMX_GetParameter(
         OMX_U32 nProfileLevels = 0;
         if (profileLevel->nPortIndex  >= ALL_PORT_NUM) {
             Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "Invalid port index: %ld", profileLevel->nPortIndex);
-            return OMX_ErrorUnsupportedIndex;
+            ret = OMX_ErrorUnsupportedIndex;
+            goto EXIT;
         }
         if (pVideoEnc->codecId == OMX_VIDEO_CodingAVC) {
             nProfileLevels =
                 sizeof(kProfileLevels) / sizeof(kProfileLevels[0]);
             if (index >= nProfileLevels) {
-                return OMX_ErrorNoMore;
+                ret = OMX_ErrorNoMore;
+                goto EXIT;
             }
             profileLevel->eProfile = kProfileLevels[index].mProfile;
             profileLevel->eLevel = kProfileLevels[index].mLevel;
         } else {
-            return OMX_ErrorNoMore;
+            ret = OMX_ErrorNoMore;
+            goto EXIT;
         }
-        return OMX_ErrorNone;
+        ret = OMX_ErrorNone;
     }
     break;
     case OMX_IndexParamRkEncExtendedVideo: {   // extern for huawei param setting
@@ -1430,7 +1453,9 @@ OMX_ERRORTYPE Rkvpu_OMX_SetParameter(
             pRockchipComponent->pRockchipPort[OUTPUT_PORT_INDEX].portDefinition.format.video.eCompressionFormat = OMX_VIDEO_CodingAVC;
         } else if (!Rockchip_OSAL_Strcmp((char*)pComponentRole->cRole, RK_OMX_COMPONENT_VP8_ENC_ROLE)) {
             pRockchipComponent->pRockchipPort[OUTPUT_PORT_INDEX].portDefinition.format.video.eCompressionFormat = OMX_VIDEO_CodingVP8;
-        } else {
+        } else if (!Rockchip_OSAL_Strcmp((char*)pComponentRole->cRole, RK_OMX_COMPONENT_HEVC_ENC_ROLE)) {
+            pRockchipComponent->pRockchipPort[OUTPUT_PORT_INDEX].portDefinition.format.video.eCompressionFormat = OMX_VIDEO_CodingHEVC;
+        }else {
             ret = OMX_ErrorBadParameter;
             goto EXIT;
         }
@@ -1455,7 +1480,23 @@ OMX_ERRORTYPE Rkvpu_OMX_SetParameter(
     }
 
     break;
+    case OMX_IndexParamVideoHevc: {
+        OMX_VIDEO_PARAM_HEVCTYPE *pDstHEVCComponent = NULL;
+        OMX_VIDEO_PARAM_HEVCTYPE *pSrcHEVCComponent = (OMX_VIDEO_PARAM_HEVCTYPE *)ComponentParameterStructure;
+        RKVPU_OMX_VIDEOENC_COMPONENT *pVideoEnc = (RKVPU_OMX_VIDEOENC_COMPONENT *)pRockchipComponent->hComponentHandle;
+        ret = Rockchip_OMX_Check_SizeVersion(pSrcHEVCComponent, sizeof(OMX_VIDEO_PARAM_HEVCTYPE));
+        if (ret != OMX_ErrorNone) {
+            goto EXIT;
+        }
+        if (pSrcHEVCComponent->nPortIndex >= ALL_PORT_NUM) {
+            ret = OMX_ErrorBadPortIndex;
+            goto EXIT;
+        }
 
+        pDstHEVCComponent = &pVideoEnc->HEVCComponent[pSrcHEVCComponent->nPortIndex];
+        Rockchip_OSAL_Memcpy(pDstHEVCComponent, pSrcHEVCComponent, sizeof(OMX_VIDEO_PARAM_HEVCTYPE));
+    }
+    break;
     case OMX_IndexParamRkEncExtendedVideo: {   // extern for huawei param setting
         OMX_VIDEO_PARAMS_EXTENDED  *params_extend = (OMX_VIDEO_PARAMS_EXTENDED *)ComponentParameterStructure;
         RKVPU_OMX_VIDEOENC_COMPONENT *pVideoEnc = (RKVPU_OMX_VIDEOENC_COMPONENT *)pRockchipComponent->hComponentHandle;
