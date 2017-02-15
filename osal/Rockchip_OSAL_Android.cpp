@@ -1140,7 +1140,8 @@ OMX_COLOR_FORMATTYPE Rockchip_OSAL_CheckFormat(ROCKCHIP_OMX_BASECOMPONENT *pRock
     RKVPU_OMX_VIDEODEC_COMPONENT *pVideoDec = (RKVPU_OMX_VIDEODEC_COMPONENT *)pRockchipComponent->hComponentHandle;
     OMX_COLOR_FORMATTYPE eColorFormat = (OMX_COLOR_FORMATTYPE)HAL_PIXEL_FORMAT_YCrCb_NV12;
     VPU_FRAME *pframe = (VPU_FRAME *)pVpuframe;
-    if (pVideoDec->codecId == OMX_VIDEO_CodingHEVC && (pframe->OutputWidth != 0x20)) { // 10bit
+    if ((pVideoDec->codecId == OMX_VIDEO_CodingHEVC || pVideoDec->codecId == OMX_VIDEO_CodingAVC)
+           && (pframe->OutputWidth != 0x20)) { // 10bit
         eColorFormat = (OMX_COLOR_FORMATTYPE)HAL_PIXEL_FORMAT_YCrCb_NV12_10;
     }
     return eColorFormat;
