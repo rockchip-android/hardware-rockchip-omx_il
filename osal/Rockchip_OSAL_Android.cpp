@@ -1135,14 +1135,17 @@ OMX_ERRORTYPE  Rockchip_OSAL_Closevpumempool(OMX_IN ROCKCHIP_OMX_BASECOMPONENT *
     return OMX_ErrorNone;
 }
 
-OMX_COLOR_FORMATTYPE Rockchip_OSAL_CheckFormat(ROCKCHIP_OMX_BASECOMPONENT *pRockchipComponent, OMX_IN OMX_PTR pVpuframe)
+OMX_COLOR_FORMATTYPE Rockchip_OSAL_CheckFormat(
+    ROCKCHIP_OMX_BASECOMPONENT *pRockchipComponent,
+    OMX_IN OMX_PTR pVpuframe)
 {
     RKVPU_OMX_VIDEODEC_COMPONENT *pVideoDec = (RKVPU_OMX_VIDEODEC_COMPONENT *)pRockchipComponent->hComponentHandle;
     OMX_COLOR_FORMATTYPE eColorFormat = (OMX_COLOR_FORMATTYPE)HAL_PIXEL_FORMAT_YCrCb_NV12;
     VPU_FRAME *pframe = (VPU_FRAME *)pVpuframe;
-    if ((pVideoDec->codecId == OMX_VIDEO_CodingHEVC || pVideoDec->codecId == OMX_VIDEO_CodingAVC)
-           && (pframe->OutputWidth != 0x20)) { // 10bit
+    if ((pVideoDec->codecId == OMX_VIDEO_CodingHEVC && (pframe->OutputWidth != 0x20))
+            || (pframe->ColorType & VPU_OUTPUT_FORMAT_BIT_MASK) == VPU_OUTPUT_FORMAT_BIT_10) { // 10bit
         eColorFormat = (OMX_COLOR_FORMATTYPE)HAL_PIXEL_FORMAT_YCrCb_NV12_10;
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "%s %d set to nv12 10bit",__FUNCTION__,__LINE__);
     }
     return eColorFormat;
 }
