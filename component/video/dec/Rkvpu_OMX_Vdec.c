@@ -42,7 +42,7 @@
 #include "vpu_mem.h"
 #include <dlfcn.h>
 #include <unistd.h>
-
+#include <cutils/properties.h>
 
 #undef  ROCKCHIP_LOG_TAG
 #define ROCKCHIP_LOG_TAG    "ROCKCHIP_VIDEO_DEC"
@@ -144,6 +144,28 @@ OMX_BOOL Rkvpu_Check_BufferProcess_State(ROCKCHIP_OMX_BASECOMPONENT *pRockchipCo
 
     return ret;
 }
+
+OMX_ERRORTYPE Rkvpu_OMX_CheckIsNeedFastmode(
+    ROCKCHIP_OMX_BASECOMPONENT *pRockchipComponent)
+{
+    OMX_ERRORTYPE                  ret               = OMX_ErrorNone;
+    RKVPU_OMX_VIDEODEC_COMPONENT  *pVideoDec         = (RKVPU_OMX_VIDEODEC_COMPONENT *)pRockchipComponent->hComponentHandle;
+    ROCKCHIP_OMX_BASEPORT         *pInputPort       = &pRockchipComponent->pRockchipPort[INPUT_PORT_INDEX];
+    VpuCodecContext_t             *p_vpu_ctx         = pVideoDec->vpu_ctx;
+    if (pVideoDec->bFastMode == OMX_FALSE
+            && pVideoDec->codecId == OMX_VIDEO_CodingHEVC
+            && pInputPort->portDefinition.format.video.nFrameWidth > 1920
+            && pInputPort->portDefinition.format.video.nFrameHeight > 1080) {
+        pVideoDec->bFastMode = OMX_TRUE;
+        int fast_mode = 1;
+        p_vpu_ctx->control(p_vpu_ctx, VPU_API_USE_FAST_MODE, &fast_mode);
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE,"used fast mode, h265decoder, width = %d, height = %d",
+                                              pInputPort->portDefinition.format.video.nFrameWidth,
+                                              pInputPort->portDefinition.format.video.nFrameHeight);
+    }
+    return ret;
+}
+
 OMX_ERRORTYPE Rkvpu_ResetAllPortConfig(OMX_COMPONENTTYPE *pOMXComponent)
 {
     OMX_ERRORTYPE                  ret               = OMX_ErrorNone;
@@ -241,12 +263,10 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
 
                 Rockchip_OSAL_Memcpy(extraData, inputUseBuffer->bufferHeader->pBuffer + inputUseBuffer->usedDataLen,
                                      inputUseBuffer->dataLen);
-#ifdef WRITE_DEC_IN_FILE
                 if (pVideoDec->fp_in != NULL) {
                     fwrite(extraData, 1, inputUseBuffer->dataLen, pVideoDec->fp_in);
-                    fflush(pVideoDec->fp_in);                    
+                    fflush(pVideoDec->fp_in);
                 }
-#endif
                 extraSize = inputUseBuffer->dataLen;
                 extraFlag = 1;
             }
@@ -288,12 +308,12 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
         Rockchip_OSAL_Memset(&pkt, 0, sizeof(VideoPacket_t));
         pkt.data =  inputUseBuffer->bufferHeader->pBuffer + inputUseBuffer->usedDataLen;
         pkt.size = inputUseBuffer->dataLen;
-#ifdef WRITE_DEC_IN_FILE
+
         if (pVideoDec->fp_in != NULL) {
             fwrite(pkt.data, 1, pkt.size, pVideoDec->fp_in);
-            fflush(pVideoDec->fp_in);                    
+            fflush(pVideoDec->fp_in);
         }
-#endif
+
         if (pVideoDec->flags & RKVPU_OMX_VDEC_USE_DTS) {
             pkt.pts = VPU_API_NOPTS_VALUE;
             pkt.dts = inputUseBuffer->timeStamp;
@@ -940,6 +960,9 @@ OMX_ERRORTYPE Rkvpu_Dec_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
         Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "open rga device fail!");
     }
 
+    if (Rkvpu_OMX_CheckIsNeedFastmode(pRockchipComponent) != OMX_ErrorNone) {
+       Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "check fast mode failed!");
+    }
     /*
      ** if current stream is Div3, tell VPU_API of on2 decoder to
      ** config hardware as Div3.
@@ -947,9 +970,13 @@ OMX_ERRORTYPE Rkvpu_Dec_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
     /*  if (pVideoDec->flags & RKVPU_OMX_VDEC_IS_DIV3) {
           p_vpu_ctx->videoCoding = OMX_RK_VIDEO_CodingDIVX3;
       }*/
-#ifdef WRITE_DEC_IN_FILE
-    pVideoDec->fp_in = fopen("data/video/dec_in.bin", "wb");
-#endif
+
+    char value[PROPERTY_VALUE_MAX];
+    if (property_get("record_omx_dec_in", value, "0") && (atoi(value) > 0)) {
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Start recording stream to /data/video/dec_in.bin");
+        pVideoDec->fp_in = fopen("data/video/dec_in.bin", "wb");
+    }
+
 #ifdef WRITR_FILE
     pVideoDec->fp_out = fopen("data/video/dec_out.yuv", "wb");
 #endif
@@ -1060,6 +1087,8 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentConstructor(OMX_HANDLETYPE hComponent, OMX_S
     pRockchipComponent->bBehaviorEOS = OMX_FALSE;
     pVideoDec->bDecSendEOS = OMX_FALSE;
     pVideoDec->bPvr_Flag = OMX_FALSE;
+    pVideoDec->bFastMode = OMX_FALSE;
+    pVideoDec->fp_in = NULL;
     pRockchipComponent->bMultiThreadProcess = OMX_TRUE;
     pRockchipComponent->codecType = HW_VIDEO_DEC_CODEC;
 
@@ -1278,6 +1307,9 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentDeInit(OMX_HANDLETYPE hComponent)
     pVideoDec = (RKVPU_OMX_VIDEODEC_COMPONENT *)pRockchipComponent->hComponentHandle;
 
 //    Rockchip_OSAL_RefANB_Terminate(pVideoDec->hRefHandle);
+    if (pVideoDec->fp_in != NULL) {
+        fclose(pVideoDec->fp_in);
+    }
 
     Rockchip_OSAL_Free(pVideoDec);
     pRockchipComponent->hComponentHandle = pVideoDec = NULL;
@@ -1293,11 +1325,7 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentDeInit(OMX_HANDLETYPE hComponent)
         Rockchip_OSAL_Free(pRockchipPort->portDefinition.format.video.cMIMEType);
         pRockchipPort->portDefinition.format.video.cMIMEType = NULL;
     }
-#ifdef WRITE_DEC_IN_FILE
-    if (pVideoDec->fp_in != NULL) {
-        fclose(pVideoDec->fp_in);
-    }
-#endif
+
     ret = Rockchip_OMX_Port_Destructor(pOMXComponent);
 
     ret = Rockchip_OMX_BaseComponent_Destructor(hComponent);
