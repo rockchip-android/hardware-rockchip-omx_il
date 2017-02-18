@@ -128,7 +128,9 @@ typedef struct _RKVPU_OMX_VIDEODEC_COMPONENT {
 #ifdef WRITR_FILE
     FILE *fp_out;
 #endif
+    /* For debug */
     FILE *fp_in;
+    OMX_BOOL bPrintFps;
     void *rkapi_hdl;
     OMX_S32 (*rkvpu_open_cxt)(VpuCodecContext_t **ctx);
     OMX_S32 (*rkvpu_close_cxt)(VpuCodecContext_t **ctx);

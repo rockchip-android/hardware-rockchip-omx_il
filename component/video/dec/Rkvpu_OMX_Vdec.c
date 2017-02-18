@@ -43,6 +43,8 @@
 #include <dlfcn.h>
 #include <unistd.h>
 #include <cutils/properties.h>
+#include <time.h>
+#include <sys/time.h>
 
 #undef  ROCKCHIP_LOG_TAG
 #define ROCKCHIP_LOG_TAG    "ROCKCHIP_VIDEO_DEC"
@@ -87,6 +89,52 @@ int calc_plane(int width, int height)
 
     return (mbX * 16) * (mbY * 16);
 }
+
+static void controlFPS(OMX_BOOL isInput)
+{
+    static int inFrameCount = 0;
+    static int inLastFrameCount = 0;
+    static long inLastFpsTimeUs = 0;
+    static float inFps = 0;
+    static long inDiff = 0;
+    static long inNowUs = 0;
+    static int outFrameCount = 0;
+    static int outLastFrameCount = 0;
+    static long outLastFpsTimeUs = 0;
+    static float outFps = 0;
+    static long outDiff = 0;
+    static long outNowUs = 0;
+
+    if (isInput == OMX_TRUE) {
+        inFrameCount++;
+        if (!(inFrameCount & 0x1F)) {
+            struct timeval now;
+            gettimeofday(&now, NULL);
+            inNowUs = (long)now.tv_sec * 1000000 + (long)now.tv_usec;
+            inDiff = inNowUs - inLastFpsTimeUs;
+            inFps = ((float)(inFrameCount - inLastFrameCount) * 1.0f) * 1000.0f * 1000.0f / (float)inDiff;
+            inLastFpsTimeUs = inNowUs;
+            inLastFrameCount = inFrameCount;
+            Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "%s(%d): decode input frameCount = %d frameRate = %f HZ",
+                              __FUNCTION__, __LINE__, inFrameCount, inFps);
+        }
+    } else {
+        outFrameCount++;
+        if (!(outFrameCount & 0x1F)) {
+            struct timeval now;
+            gettimeofday(&now, NULL);
+            outNowUs = (long)now.tv_sec * 1000000 + (long)now.tv_usec;
+            outDiff = outNowUs - outLastFpsTimeUs;
+            outFps = ((float)(outFrameCount - outLastFrameCount) * 1.0f) * 1000.0f * 1000.0f / (float)outDiff;
+            outLastFpsTimeUs = outNowUs;
+            outLastFrameCount = outFrameCount;
+            Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "%s(%d): decode output frameCount = %d frameRate = %f HZ",
+                              __FUNCTION__, __LINE__, outFrameCount, outFps);
+        }
+    }
+    return;
+}
+
 
 void UpdateFrameSize(OMX_COMPONENTTYPE *pOMXComponent)
 {
@@ -163,6 +211,30 @@ OMX_ERRORTYPE Rkvpu_OMX_CheckIsNeedFastmode(
                                               pInputPort->portDefinition.format.video.nFrameWidth,
                                               pInputPort->portDefinition.format.video.nFrameHeight);
     }
+    return ret;
+}
+
+OMX_ERRORTYPE Rkvpu_OMX_DebugSwitchfromPropget(
+    ROCKCHIP_OMX_BASECOMPONENT *pRockchipComponent)
+{
+    OMX_ERRORTYPE                  ret               = OMX_ErrorNone;
+    RKVPU_OMX_VIDEODEC_COMPONENT  *pVideoDec         = (RKVPU_OMX_VIDEODEC_COMPONENT *)pRockchipComponent->hComponentHandle;
+    char                           value[PROPERTY_VALUE_MAX];
+    memset(value, 0, sizeof(value));
+    if (property_get("record_omx_dec_in", value, "0") && (atoi(value) > 0)) {
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Start recording stream to /data/video/dec_in.bin");
+        if (pVideoDec->fp_in != NULL) {
+            fclose(pVideoDec->fp_in);
+        }
+        pVideoDec->fp_in = fopen("data/video/dec_in.bin", "wb");
+    }
+
+    memset(value, 0, sizeof(value));
+    if (property_get("dump_omx_fps", value, "0") && (atoi(value) > 0)) {
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Start print framerate when frameCount = 32");
+        pVideoDec->bPrintFps = OMX_TRUE;
+    }
+
     return ret;
 }
 
@@ -331,6 +403,12 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
             // Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR,"stream list full wait");
             goto EXIT;
         }
+
+        if (pVideoDec->bPrintFps == OMX_TRUE) {
+            OMX_BOOL isInput = OMX_TRUE;
+            controlFPS(isInput);
+        }
+
         Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, ",pkt.size:%d, pkt.dts:%lld,pkt.pts:%lld,pkt.nFlags:%d",
                           pkt.size, pkt.dts, pkt.pts, pkt.nFlags);
         Rkvpu_InputBufferReturn(pOMXComponent, inputUseBuffer);
@@ -458,6 +536,11 @@ OMX_BOOL Rkvpu_Post_OutputFrame(OMX_COMPONENTTYPE *pOMXComponent)
                 Rockchip_OSAL_resetVpumemPool(pRockchipComponent);
                 p_vpu_ctx->control(p_vpu_ctx, VPU_API_SET_INFO_CHANGE, NULL);
                 goto EXIT;
+            }
+
+            if (pVideoDec->bPrintFps == OMX_TRUE) {
+                OMX_BOOL isInput = OMX_FALSE;
+                controlFPS(isInput);
             }
 
             if (pframe->ErrorInfo) {   //drop frame when this frame mark error from dec
@@ -971,11 +1054,7 @@ OMX_ERRORTYPE Rkvpu_Dec_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
           p_vpu_ctx->videoCoding = OMX_RK_VIDEO_CodingDIVX3;
       }*/
 
-    char value[PROPERTY_VALUE_MAX];
-    if (property_get("record_omx_dec_in", value, "0") && (atoi(value) > 0)) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Start recording stream to /data/video/dec_in.bin");
-        pVideoDec->fp_in = fopen("data/video/dec_in.bin", "wb");
-    }
+    Rkvpu_OMX_DebugSwitchfromPropget(pRockchipComponent);
 
 #ifdef WRITR_FILE
     pVideoDec->fp_out = fopen("data/video/dec_out.yuv", "wb");
@@ -1088,6 +1167,7 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentConstructor(OMX_HANDLETYPE hComponent, OMX_S
     pVideoDec->bDecSendEOS = OMX_FALSE;
     pVideoDec->bPvr_Flag = OMX_FALSE;
     pVideoDec->bFastMode = OMX_FALSE;
+    pVideoDec->bPrintFps = OMX_FALSE;
     pVideoDec->fp_in = NULL;
     pRockchipComponent->bMultiThreadProcess = OMX_TRUE;
     pRockchipComponent->codecType = HW_VIDEO_DEC_CODEC;
