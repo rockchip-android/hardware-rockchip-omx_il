@@ -1142,11 +1142,22 @@ OMX_COLOR_FORMATTYPE Rockchip_OSAL_CheckFormat(
     RKVPU_OMX_VIDEODEC_COMPONENT *pVideoDec = (RKVPU_OMX_VIDEODEC_COMPONENT *)pRockchipComponent->hComponentHandle;
     OMX_COLOR_FORMATTYPE eColorFormat = (OMX_COLOR_FORMATTYPE)HAL_PIXEL_FORMAT_YCrCb_NV12;
     VPU_FRAME *pframe = (VPU_FRAME *)pVpuframe;
+    VpuCodecContext_t *p_vpu_ctx = pVideoDec->vpu_ctx;
     if ((pVideoDec->codecId == OMX_VIDEO_CodingHEVC && (pframe->OutputWidth != 0x20))
             || (pframe->ColorType & VPU_OUTPUT_FORMAT_BIT_MASK) == VPU_OUTPUT_FORMAT_BIT_10) { // 10bit
         eColorFormat = (OMX_COLOR_FORMATTYPE)HAL_PIXEL_FORMAT_YCrCb_NV12_10;
         Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "%s %d set to nv12 10bit",__FUNCTION__,__LINE__);
+        if ((pframe->ColorType & OMX_COLORSPACE_MASK) != 0) {
+            OMX_RK_EXT_COLORSPACE colorSpace = (OMX_RK_EXT_COLORSPACE)((pframe->ColorType & OMX_COLORSPACE_MASK) >> 20);
+            pVideoDec->extColorSpace = colorSpace;
+            Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "%s %d extension color space = %d",__FUNCTION__,__LINE__,colorSpace);
+        }
+        if ((pframe->ColorType & OMX_DYNCRANGE_MASK) != 0) {
+           OMX_RK_EXT_DYNCRANGE dyncRange = (OMX_RK_EXT_DYNCRANGE)((pframe->ColorType & OMX_DYNCRANGE_MASK) >> 24);
+           pVideoDec->extDyncRange = dyncRange;
+        }
     }
+
     return eColorFormat;
 }
 

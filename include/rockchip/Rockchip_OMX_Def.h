@@ -51,6 +51,9 @@
 
 #define ROCKCHIP_OMX_INSTALL_PATH "/system/lib/"
 
+#define OMX_COLORSPACE_MASK     (0x00f00000)
+#define OMX_DYNCRANGE_MASK      (0x0f000000)
+
 /* note: must sync with gralloc */
 typedef enum _ANB_PRIVATE_BUF_TYPE {
     ANB_PRIVATE_BUF_NONE    = 0,

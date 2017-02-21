@@ -87,6 +87,35 @@ typedef struct OMX_TIME_CONFIG_SEEKMODETYPE {
     OMX_TIME_SEEKMODETYPE eType;    /**< The seek mode */
 } OMX_TIME_CONFIG_SEEKMODETYPE;
 
+/**
+ * colorspace 
+ */
+typedef enum OMX_ROCKCHIP_EXT_COLORSPACE {
+    OMX_RK_EXT_ColorspaceBT709 = 1,
+    OMX_RK_EXT_ColorspaceBT2020,
+    OMX_RK_EXT_ColorspaceMax = 0x7FFFFFFF
+} OMX_RK_EXT_COLORSPACE;
+
+/**
+ * dynamic range
+ */
+typedef enum OMX_ROCKCHIP_EXT_DYNCRANGE {
+    OMX_RK_EXT_DyncrangeSDR = 0,
+    OMX_RK_EXT_DyncrangeHDR10,
+    OMX_RK_EXT_DyncrangeHDRHLG,
+    OMX_RK_EXT_DyncrangeHDRDOLBY,
+    OMX_RK_EXT_DyncrangeMax = 0x7FFFFFFF
+} OMX_RK_EXT_DYNCRANGE;
+
+
+/* Structure Rockchip extension HDR param of the component */
+ typedef struct OMX_EXTENSION_VIDEO_PARAM_HDR {
+    OMX_U32 nSize;                  /**< size of the structure in bytes */
+    OMX_VERSIONTYPE nVersion;       /**< OMX specification version information */
+    OMX_RK_EXT_COLORSPACE eColorSpace;    /**< Color space */
+    OMX_RK_EXT_DYNCRANGE eDyncRange;    /**< dynamic range */
+} OMX_EXTENSION_VIDEO_PARAM_HDR;
+
 /** Structure representing a time stamp used with the following configs
  * on the Clock Component (CC):
  *

@@ -1357,7 +1357,6 @@ OMX_ERRORTYPE Rkvpu_OMX_GetParameter(
     }
     break;
     case OMX_IndexParamVideoProfileLevelQuerySupported: {
-
         OMX_VIDEO_PARAM_PROFILELEVELTYPE *profileLevel =
             (OMX_VIDEO_PARAM_PROFILELEVELTYPE *) ComponentParameterStructure;
         RKVPU_OMX_VIDEODEC_COMPONENT *pVideoDec = (RKVPU_OMX_VIDEODEC_COMPONENT *)pRockchipComponent->hComponentHandle;
@@ -1404,6 +1403,21 @@ OMX_ERRORTYPE Rkvpu_OMX_GetParameter(
             return OMX_ErrorNoMore;
         }
         return OMX_ErrorNone;
+    }
+    break;
+    case OMX_IndexParamVideoHDRRockchipExtensions: {
+         OMX_EXTENSION_VIDEO_PARAM_HDR *hdrParams =
+            (OMX_EXTENSION_VIDEO_PARAM_HDR *) ComponentParameterStructure;
+         RKVPU_OMX_VIDEODEC_COMPONENT *pVideoDec = (RKVPU_OMX_VIDEODEC_COMPONENT *)pRockchipComponent->hComponentHandle;
+
+         ret = Rockchip_OMX_Check_SizeVersion(hdrParams, sizeof(OMX_EXTENSION_VIDEO_PARAM_HDR));
+         if (ret != OMX_ErrorNone) {
+             goto EXIT;
+         }
+
+        hdrParams->eColorSpace = pVideoDec->extColorSpace;
+        hdrParams->eDyncRange = pVideoDec->extDyncRange;
+        ret = OMX_ErrorNone;
     }
     break;
     default: {

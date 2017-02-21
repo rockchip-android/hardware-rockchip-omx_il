@@ -122,6 +122,9 @@ typedef struct _RKVPU_OMX_VIDEODEC_COMPONENT {
     OMX_BOOL bOld_api;
     /* For vpu control */
     OMX_BOOL bFastMode;
+    OMX_RK_EXT_COLORSPACE extColorSpace;
+    OMX_RK_EXT_DYNCRANGE extDyncRange;
+
 #ifdef WRITR_FILE
     FILE *fp_out;
 #endif

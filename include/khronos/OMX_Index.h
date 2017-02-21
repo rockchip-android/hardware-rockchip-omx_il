@@ -240,6 +240,8 @@ typedef enum OMX_INDEXTYPE {
 
     OMX_IndexKhronosExtensions = 0x6F000000, /**< Reserved region for introducing Khronos Standard Extensions */
     /* Vendor specific area */
+    OMX_IndexRockchipExtensions = 0x70000000, /**< Reserved region for introducing Rockchip Standard Extensions */
+    OMX_IndexParamVideoHDRRockchipExtensions,  /**< reference: OMX_EXTENSION_VIDEO_PARAM_HDR */
     OMX_IndexVendorStartUnused = 0x7F000000,
     /* Vendor specific structures should be in the range of 0x7F000000
        to 0x7FFFFFFE.  This range is not broken out by vendor, so
