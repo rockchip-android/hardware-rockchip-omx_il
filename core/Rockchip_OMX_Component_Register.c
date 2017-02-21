@@ -39,7 +39,7 @@
 #include "Rockchip_OSAL_Library.h"
 #include "Rockchip_OMX_Component_Register.h"
 #include "Rockchip_OMX_Macros.h"
-#include "svn_info.h"
+#include "git_info.h"
 
 #undef  ROCKCHIP_LOG_TAG
 #define ROCKCHIP_LOG_TAG    "ROCKCHIP_COMP_REGS"

@@ -35,7 +35,7 @@
 #include "Rockchip_OSAL_Mutex.h"
 #include "Rockchip_OSAL_ETC.h"
 #include "Rockchip_OMX_Resourcemanager.h"
-#include "svn_info.h"
+#include "git_info.h"
 #include <pthread.h>
 
 #undef  ROCKCHIP_LOG_TAG

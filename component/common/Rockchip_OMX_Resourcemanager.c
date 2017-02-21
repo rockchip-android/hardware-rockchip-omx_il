@@ -32,7 +32,7 @@
 #include "Rockchip_OMX_Basecomponent.h"
 #include "Rockchip_OSAL_Memory.h"
 #include "Rockchip_OSAL_Mutex.h"
-#include "svn_info.h"
+#include "git_info.h"
 
 #undef  ROCKCHIP_LOG_TAG
 #define ROCKCHIP_LOG_TAG    "ROCKCHIP_RM"

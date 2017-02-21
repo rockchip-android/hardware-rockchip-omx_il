@@ -992,6 +992,9 @@ OMX_ERRORTYPE Rkvpu_Dec_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
     OMX_RK_VIDEO_CODINGTYPE codecId = OMX_RK_VIDEO_CodingUnused;
     ROCKCHIP_OMX_BASEPORT           *pRockchipInputPort  = &pRockchipComponent->pRockchipPort[INPUT_PORT_INDEX];
     VpuCodecContext_t *p_vpu_ctx = (VpuCodecContext_t *)Rockchip_OSAL_Malloc(sizeof(VpuCodecContext_t));
+    if (pRockchipComponent->rkversion != NULL) {
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "omx decoder info : %s",pRockchipComponent->rkversion);
+    }
     Rockchip_OSAL_Memset((void*)p_vpu_ctx, 0, sizeof(VpuCodecContext_t));
     if (omx_open_vpudec_context(pVideoDec)) {
         ret = OMX_ErrorInsufficientResources;
