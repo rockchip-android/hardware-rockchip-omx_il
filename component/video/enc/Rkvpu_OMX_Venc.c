@@ -1380,26 +1380,6 @@ OMX_ERRORTYPE Rkvpu_Enc_GetEncParams(OMX_COMPONENTTYPE *pOMXComponent,EncParamet
         }
     }
 
-    switch (pRockchipInputPort->portDefinition.format.video.eColorFormat) {
-        case OMX_COLOR_FormatAndroidOpaque: {
-            (*encParams)->rc_mode = Video_RC_Mode_VBR;
-            (*encParams)->format = VPU_H264ENC_RGB888;
-        }
-        break;
-        case OMX_COLOR_FormatYUV420Planar: {
-            (*encParams)->format = VPU_H264ENC_YUV420_PLANAR;
-        }
-        break;
-        case OMX_COLOR_FormatYUV420SemiPlanar: {
-            (*encParams)->format = VPU_H264ENC_YUV420_SEMIPLANAR;
-        }
-        break;
-        default:
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR,"inputPort colorformat is not support format = %d",
-                     pRockchipInputPort->portDefinition.format.video.eColorFormat);
-        break;
-    }
-    
     Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "encode params init settings:\n"
                                          "width = %d\n"
                                          "height = %d\n"
