@@ -1167,6 +1167,9 @@ OMX_ERRORTYPE omx_open_vpuenc_context(RKVPU_OMX_VIDEOENC_COMPONENT *pVideoEnc)
             dlclose( pVideoEnc->rkapi_hdl);
             return OMX_ErrorHardware;
         }
+        pVideoEnc->bIsNewVpu = OMX_FALSE;
+    } else {
+        pVideoEnc->bIsNewVpu = OMX_TRUE;
     }
     pVideoEnc->rkvpu_close_cxt = (OMX_S32 (*)(VpuCodecContext_t **ctx))dlsym(pVideoEnc->rkapi_hdl, "vpu_close_context");
     return OMX_ErrorNone;
@@ -1180,14 +1183,22 @@ OMX_ERRORTYPE Rkvpu_Enc_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
     OMX_RK_VIDEO_CODINGTYPE codecId = OMX_RK_VIDEO_CodingUnused;
     ROCKCHIP_OMX_BASEPORT           *pRockchipInputPort  = &pRockchipComponent->pRockchipPort[INPUT_PORT_INDEX];
     ROCKCHIP_OMX_BASEPORT           *pRockchipOutPort  = &pRockchipComponent->pRockchipPort[OUTPUT_PORT_INDEX];
-    VpuCodecContext_t               *p_vpu_ctx           = (VpuCodecContext_t *)Rockchip_OSAL_Malloc(sizeof(VpuCodecContext_t));
+    VpuCodecContext_t               *p_vpu_ctx           = NULL;
     EncParameter_t *EncParam = NULL;
     RK_U32 new_width = 0, new_height = 0;
     if (omx_open_vpuenc_context(pVideoEnc) != OMX_ErrorNone) {
         ret = OMX_ErrorInsufficientResources;
         goto EXIT;
     }
+    if (pVideoEnc->bIsNewVpu == OMX_TRUE) {
+        p_vpu_ctx = (VpuCodecContext_t *)Rockchip_OSAL_Malloc(sizeof(VpuCodecContext_t));
+    }
 
+    if (pVideoEnc->rkvpu_open_cxt && pVideoEnc->bIsNewVpu == OMX_FALSE) {
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "open vpu context FALSE");
+        pVideoEnc->rkvpu_open_cxt(&p_vpu_ctx);
+    }
+    
     int32_t kNumMapEntries = sizeof(kCodeMap) / sizeof(kCodeMap[0]);
     int i = 0;
     for (i = 0; i < kNumMapEntries; i++) {
@@ -1196,8 +1207,9 @@ OMX_ERRORTYPE Rkvpu_Enc_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
             break;
         }
     }
-
-    memset(p_vpu_ctx, 0, sizeof(VpuCodecContext_t));
+    if (pVideoEnc->bIsNewVpu == OMX_TRUE) {
+        memset(p_vpu_ctx, 0, sizeof(VpuCodecContext_t));
+    }
     pVideoEnc->bCurrent_height = pRockchipInputPort->portDefinition.format.video.nFrameHeight;
     pVideoEnc->bCurrent_width = pRockchipInputPort->portDefinition.format.video.nFrameWidth;
     if(pVideoEnc->params_extend.bEnableScaling || pVideoEnc->params_extend.bEnableCropping){
@@ -1222,8 +1234,8 @@ OMX_ERRORTYPE Rkvpu_Enc_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
     p_vpu_ctx->videoCoding = codecId;
     p_vpu_ctx->width =  pVideoEnc->bCurrent_width;
     p_vpu_ctx->height = pVideoEnc->bCurrent_height;
-    if (pVideoEnc->rkvpu_open_cxt) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "open vpu context");
+    if (pVideoEnc->rkvpu_open_cxt && pVideoEnc->bIsNewVpu == OMX_TRUE) {
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "open vpu context new");
         pVideoEnc->rkvpu_open_cxt(&p_vpu_ctx);
     }
     if (p_vpu_ctx == NULL) {
@@ -1541,6 +1553,9 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentConstructor(OMX_HANDLETYPE hComponent, OMX_S
     pVideoEnc->quantization.nQpI = 4; // I frame quantization parameter
     pVideoEnc->quantization.nQpP = 5; // P frame quantization parameter
     pVideoEnc->quantization.nQpB = 5; // B frame quantization parameter
+    //add by xlm for use mpp or vpuapi
+    pVideoEnc->bIsUseMpp = OMX_FALSE;
+    pVideoEnc->bIsNewVpu = OMX_TRUE;
 
     Rockchip_OSAL_MutexCreate(&pVideoEnc->bScale_Mutex);
     Rockchip_OSAL_MutexCreate(&pVideoEnc->bRecofig_Mutex);
