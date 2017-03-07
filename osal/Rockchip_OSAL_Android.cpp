@@ -635,6 +635,10 @@ OMX_ERRORTYPE Rockchip_OSAL_SetANBParameter(
             if (pVideoDec->bIsANBEnabled == OMX_TRUE) {
                 pRockchipPort->bufferProcessType = BUFFER_SHARE;
                 pRockchipPort->portDefinition.nBufferCountActual = 22;
+                if (pRockchipPort->portDefinition.format.video.nFrameWidth > 1920
+                        && pRockchipPort->portDefinition.format.video.nFrameHeight > 1920) {
+                    pRockchipPort->portDefinition.nBufferCountActual = 16;
+                }
                 if (pRockchipPort->portDefinition.format.video.nFrameWidth <= 1280) {
                     pRockchipPort->portDefinition.nBufferCountActual = 25;
                 }
@@ -733,6 +737,10 @@ OMX_ERRORTYPE Rockchip_OSAL_SetANBParameter(
             pVideoDec->bStoreMetaData = pANBParams->bStoreMetaData;
             pRockchipPort->bufferProcessType = BUFFER_SHARE;
             pRockchipPort->portDefinition.nBufferCountActual = 17;
+            if (pRockchipPort->portDefinition.format.video.nFrameWidth > 1920
+                    && pRockchipPort->portDefinition.format.video.nFrameHeight > 1920) {
+                pRockchipPort->portDefinition.nBufferCountActual = 16;
+            }
             if (pRockchipPort->portDefinition.format.video.nFrameWidth <= 1280) {
                 pRockchipPort->portDefinition.nBufferCountActual = 25;
             }

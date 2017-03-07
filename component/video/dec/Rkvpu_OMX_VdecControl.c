@@ -939,9 +939,7 @@ OMX_ERRORTYPE Rkvpu_InputBufferGetQueue(ROCKCHIP_OMX_BASECOMPONENT *pRockchipCom
         goto EXIT;
     } else if ((pRockchipComponent->transientState != ROCKCHIP_OMX_TransStateExecutingToIdle) &&
                (!CHECK_PORT_BEING_FLUSHED(pRockchipPort))) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Rockchip_OSAL_SemaphoreWait in");
         Rockchip_OSAL_SemaphoreWait(pRockchipPort->bufferSemID);
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Rockchip_OSAL_SemaphoreWait out");
         if (inputUseBuffer->dataValid != OMX_TRUE) {
             message = (ROCKCHIP_OMX_MESSAGE *)Rockchip_OSAL_Dequeue(&pRockchipPort->bufferQ);
             if (message == NULL) {
@@ -953,7 +951,7 @@ OMX_ERRORTYPE Rkvpu_InputBufferGetQueue(ROCKCHIP_OMX_BASECOMPONENT *pRockchipCom
                 ret = OMX_ErrorCodecFlush;
                 goto EXIT;
             }
-
+            Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "input buffer count = %d",pRockchipPort->bufferQ.numElem);
             inputUseBuffer->bufferHeader  = (OMX_BUFFERHEADERTYPE *)(message->pCmdData);
             inputUseBuffer->allocSize     = inputUseBuffer->bufferHeader->nAllocLen;
             inputUseBuffer->dataLen       = inputUseBuffer->bufferHeader->nFilledLen;
