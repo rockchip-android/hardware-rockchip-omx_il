@@ -146,12 +146,12 @@ OMX_S32 rga_copy(RockchipVideoPlane *plane, VPUMemLinear_t *vpumem, uint32_t Wid
             Rga_Request.mmu_info.mmu_flag |= ((1 << 31) | (1 << 10) | (1 << 8));
         }
     }
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "rga start in");
+    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "rga start in");
     if (ioctl(rga_fd, RGA_BLIT_SYNC, &Rga_Request) != 0) {
         Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "rga rga_copy fail");
         return -1;
     }
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "rga start out");
+    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "rga start out");
     return 0;
 }
 
@@ -248,13 +248,13 @@ OMX_S32 rga_crop_scale(RockchipVideoPlane *plane,
         }
     }
 
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "rga start in");
+    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "rga start in");
 
     if (ioctl(rga_fd, RGA_BLIT_SYNC, &Rga_Request) != 0) {
         Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "rga_rgb2nv12 rga RGA_BLIT_SYNC fail");
         return -1;
     }
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "rga start out");
+    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "rga start out");
     return 0;
 }
 

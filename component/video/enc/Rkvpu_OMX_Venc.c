@@ -586,7 +586,7 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
             OMX_BUFFERHEADERTYPE* pInputBuffer = inputUseBuffer->bufferHeader;
             if (pInputBuffer->nFilledLen == 4) {
                 aInput.bufPhyAddr = *(int32_t*)((uint8_t*)pInputBuffer->pBuffer + pInputBuffer->nOffset);
-                Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "rk camera metadata 0x%x", aInput.bufPhyAddr);
+                Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "rk camera metadata 0x%x", aInput.bufPhyAddr);
                 aInput.buf = NULL;
             } else {
                 aInput.buf =  inputUseBuffer->bufferHeader->pBuffer + inputUseBuffer->usedDataLen;
@@ -600,7 +600,7 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
             OMX_BUFFERHEADERTYPE* pInputBuffer = inputUseBuffer->bufferHeader;
             if (pInputBuffer->nFilledLen == 4) {
                 aInput.bufPhyAddr = *(int32_t*)((uint8_t*)pInputBuffer->pBuffer + pInputBuffer->nOffset);
-                Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "rk camera metadata 0x%x", aInput.bufPhyAddr);
+                Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "rk camera metadata 0x%x", aInput.bufPhyAddr);
                 aInput.buf = NULL;
             } else {
                 aInput.buf =  inputUseBuffer->bufferHeader->pBuffer + inputUseBuffer->usedDataLen;
@@ -703,7 +703,7 @@ OMX_BOOL Rkvpu_Post_OutputStream(OMX_COMPONENTTYPE *pOMXComponent)
             }
         }
 
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "encoder_getstream in ");
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "encoder_getstream in ");
         if (p_vpu_ctx->encoder_getstream(p_vpu_ctx, &pOutput) < 0) {
             outputUseBuffer->dataLen = 0;
             outputUseBuffer->remainDataLen = 0;
@@ -770,7 +770,7 @@ OMX_BOOL Rkvpu_Post_OutputStream(OMX_COMPONENTTYPE *pOMXComponent)
             if ((outputUseBuffer->remainDataLen > 0) ||
                 ((outputUseBuffer->nFlags & OMX_BUFFERFLAG_EOS) == OMX_BUFFERFLAG_EOS) ||
                 (CHECK_PORT_BEING_FLUSHED(pOutputPort))) {
-                Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "Rkvpu_OutputBufferReturn");
+                Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Rkvpu_OutputBufferReturn");
                 Rkvpu_OutputBufferReturn(pOMXComponent, outputUseBuffer);
             }
             ret = OMX_TRUE;
@@ -892,9 +892,9 @@ OMX_ERRORTYPE Rkvpu_OMX_OutputBufferProcess(OMX_HANDLETYPE hComponent)
             if ((dstOutputUseBuffer->dataValid != OMX_TRUE) &&
                 (!CHECK_PORT_BEING_FLUSHED(rockchipOutputPort))) {
 
-                Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "Rkvpu_OutputBufferGetQueue in");
+                Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Rkvpu_OutputBufferGetQueue in");
                 ret = Rkvpu_OutputBufferGetQueue(pRockchipComponent);
-                Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "Rkvpu_OutputBufferGetQueue out");
+                Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Rkvpu_OutputBufferGetQueue out");
                 if (ret != OMX_ErrorNone) {
                     Rockchip_OSAL_MutexUnlock(dstOutputUseBuffer->bufferMutex);
                     break;

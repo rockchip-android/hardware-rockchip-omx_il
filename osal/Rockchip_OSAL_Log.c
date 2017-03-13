@@ -56,9 +56,9 @@ void _Rockchip_OSAL_Log(ROCKCHIP_LOG_LEVEL logLevel, const char *tag, const char
 #endif
         break;
     case ROCKCHIP_LOG_INFO:
-#ifdef ROCKCHIP_INFO
+//#ifdef ROCKCHIP_INFO
         __android_log_vprint(ANDROID_LOG_INFO, tag, msg, argptr);
-#endif
+//#endif
         break;
     case ROCKCHIP_LOG_WARNING:
 #ifdef ROCKCHIP_WARN

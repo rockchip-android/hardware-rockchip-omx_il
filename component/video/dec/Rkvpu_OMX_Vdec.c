@@ -38,6 +38,7 @@
 #include "Rockchip_OSAL_ETC.h"
 #include "Rockchip_OSAL_Android.h"
 #include "Rockchip_OSAL_RGA_Process.h"
+#include "vpu_mem_pool.h"
 #include <fcntl.h>
 #include "vpu_mem.h"
 #include <dlfcn.h>
@@ -235,6 +236,12 @@ OMX_ERRORTYPE Rkvpu_OMX_DebugSwitchfromPropget(
         pVideoDec->bPrintFps = OMX_TRUE;
     }
 
+    memset(value, 0, sizeof(value));
+    if (property_get("dump_omx_buf_position", value, "0") && (atoi(value) > 0)) {
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "print all buf position");
+        pVideoDec->bPrintBufferPosition = OMX_TRUE;
+    }
+
     return ret;
 }
 
@@ -314,7 +321,21 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
     ROCKCHIP_OMX_BASEPORT      *rockchipInputPort = &pRockchipComponent->pRockchipPort[INPUT_PORT_INDEX];
     ROCKCHIP_OMX_DATABUFFER    *inputUseBuffer = &rockchipInputPort->way.port2WayDataBuffer.inputDataBuffer;
     VpuCodecContext_t *p_vpu_ctx = pVideoDec->vpu_ctx;
+    OMX_S32 i = 0;
+    OMX_S32 numInOmxAl = 0;
+    OMX_S32 maxBufferNum = rockchipInputPort->portDefinition.nBufferCountActual;
     FunctionIn();
+
+    for (i = 0; i < maxBufferNum; i++) {
+        if (rockchipInputPort->extendBufferHeader[i].bBufferInOMX == OMX_FALSE) {
+            numInOmxAl++;
+        }
+    }
+
+    if (pVideoDec->bPrintBufferPosition) {
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "in buffer position: in app and display num = %d",numInOmxAl);
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "in buffer position: in omx and vpu num = %d",maxBufferNum - numInOmxAl);
+    }
 
     if (inputUseBuffer->dataValid == OMX_TRUE) {
         VideoPacket_t pkt;
@@ -397,7 +418,7 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
             pkt.nFlags |= OMX_BUFFERFLAG_EOS;
         }
 
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "decode_sendstream");
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "decode_sendstream");
         p_vpu_ctx->decode_sendstream(p_vpu_ctx, &pkt);
         if (pkt.size != 0) {
             // Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR,"stream list full wait");
@@ -440,6 +461,7 @@ OMX_BOOL Rkvpu_Post_OutputFrame(OMX_COMPONENTTYPE *pOMXComponent)
     OMX_U32         pOWnBycomponetNum = Rockchip_OSAL_GetElemNum(&pOutputPort->bufferQ);
     OMX_S32 maxBufferNum = 0;
     OMX_S32 i = 0, numInOmxAl = 0, limitNum = 8;
+    OMX_S32 bufferUnusedInVpu = 0;
     FunctionIn();
     if (p_vpu_ctx == NULL ||
         (pVideoDec->bFirstFrame == OMX_TRUE) ||
@@ -452,12 +474,20 @@ OMX_BOOL Rkvpu_Post_OutputFrame(OMX_COMPONENTTYPE *pOMXComponent)
             numInOmxAl++;
         }
     }
+    if (pVideoDec->bPrintBufferPosition) {
+        struct vpu_display_mem_pool *pMem_pool = (struct vpu_display_mem_pool*)pVideoDec->vpumem_handle;
+        bufferUnusedInVpu = pMem_pool->get_unused_num(pMem_pool);
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "out buffer position: in app and display num = %d",numInOmxAl);
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "out buffer position: in omx and vpu num = %d",maxBufferNum - numInOmxAl);
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "out buffer position: in component num = %d",pOWnBycomponetNum);
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "out buffer position: in vpu unused buffer = %d",bufferUnusedInVpu);
+    }
     if (pOutputPort->bufferProcessType == BUFFER_SHARE) {
         OMX_U32 width = 0, height = 0;
         int imageSize = 0;
         OMX_S32 dec_ret = 0;
         DecoderOut_t pOutput;
-        VPU_FRAME *pframe = (VPU_FRAME*)Rockchip_OSAL_Malloc(sizeof(VPU_FRAME));;
+        VPU_FRAME *pframe = (VPU_FRAME *)Rockchip_OSAL_Malloc(sizeof(VPU_FRAME));;
         OMX_BUFFERHEADERTYPE     *bufferHeader = NULL;
         Rockchip_OSAL_Memset(&pOutput, 0, sizeof(DecoderOut_t));
         Rockchip_OSAL_Memset(pframe, 0, sizeof(VPU_FRAME));
@@ -680,7 +710,7 @@ OMX_BOOL Rkvpu_Post_OutputFrame(OMX_COMPONENTTYPE *pOMXComponent)
                 if ((outputUseBuffer->remainDataLen > 0) ||
                     ((outputUseBuffer->nFlags & OMX_BUFFERFLAG_EOS) == OMX_BUFFERFLAG_EOS) ||
                     (CHECK_PORT_BEING_FLUSHED(pOutputPort))) {
-                    Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "Rkvpu_OutputBufferReturn");
+                    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Rkvpu_OutputBufferReturn");
                     Rkvpu_OutputBufferReturn(pOMXComponent, outputUseBuffer);
                 }
                 ret = OMX_TRUE;
@@ -804,7 +834,7 @@ OMX_ERRORTYPE Rkvpu_OMX_OutputBufferProcess(OMX_HANDLETYPE hComponent)
             if ((dstOutputUseBuffer->dataValid != OMX_TRUE) &&
                 (!CHECK_PORT_BEING_FLUSHED(rockchipOutputPort))) {
 
-                Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "Rkvpu_OutputBufferGetQueue");
+                Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Rkvpu_OutputBufferGetQueue");
                 ret = Rkvpu_OutputBufferGetQueue(pRockchipComponent);
                 if (ret != OMX_ErrorNone) {
                     Rockchip_OSAL_MutexUnlock(dstOutputUseBuffer->bufferMutex);
@@ -1171,6 +1201,7 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentConstructor(OMX_HANDLETYPE hComponent, OMX_S
     pVideoDec->bPvr_Flag = OMX_FALSE;
     pVideoDec->bFastMode = OMX_FALSE;
     pVideoDec->bPrintFps = OMX_FALSE;
+    pVideoDec->bPrintBufferPosition = OMX_FALSE;
     pVideoDec->fp_in = NULL;
     pRockchipComponent->bMultiThreadProcess = OMX_TRUE;
     pRockchipComponent->codecType = HW_VIDEO_DEC_CODEC;
