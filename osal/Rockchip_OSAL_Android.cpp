@@ -887,7 +887,7 @@ OMX_ERRORTYPE Rockchip_OSAL_GetInfoRkWfdMetaData(OMX_IN OMX_BYTE pBuffer,
 
     /* MetadataBufferType */
     Rockchip_OSAL_Memcpy(&type, pBuffer + 4, 4);
-
+#ifdef USE_ANW
     if (type != 0x1234) {
          Rockchip_OSAL_Memcpy(&type, pBuffer+sizeof(VideoNativeMetadata), 4);
          VideoGrallocMetadata *metadata = (VideoGrallocMetadata *)pBuffer;
@@ -899,6 +899,12 @@ OMX_ERRORTYPE Rockchip_OSAL_GetInfoRkWfdMetaData(OMX_IN OMX_BYTE pBuffer,
          ppBuf[0] = (OMX_PTR)pBufHandle;
          return ret;
     }
+#else
+    if (type != 0x1234) {
+        return OMX_ErrorBadParameter;
+    }
+#endif
+
     /* buffer_handle_t */
     Rockchip_OSAL_Memcpy(&pBufHandle, pBuffer + 16, sizeof(buffer_handle_t));
     ppBuf[0] = (OMX_PTR)pBufHandle;
