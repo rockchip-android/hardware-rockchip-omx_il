@@ -1016,7 +1016,7 @@ OMX_ERRORTYPE Rockchip_OSAL_Fd2VpumemPool(ROCKCHIP_OMX_BASECOMPONENT *pRockchipC
     OMX_U32 i = 0;
     OMX_U32 width = pRockchipPort->portDefinition.format.video.nStride;
     OMX_U32 height = pRockchipPort->portDefinition.format.video.nSliceHeight;
-#ifdef LOW_VRESION
+#if 1//LOW_VRESION
     OMX_U32 nBytesize = width * height * 2;
 #else
     OMX_U32 nBytesize = width * height * 9 / 5;
@@ -1053,7 +1053,7 @@ OMX_ERRORTYPE Rockchip_OSAL_Fd2VpumemPool(ROCKCHIP_OMX_BASECOMPONENT *pRockchipC
                 if (dupshared_fd > 0) {
                     pRockchipPort->extendBufferHeader[i].buf_fd[0] = dupshared_fd;
                 }
-                Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "commit bufferHeader 0x%x share_fd = 0x%x", bufferHeader, pRockchipPort->extendBufferHeader[i].buf_fd[0]);
+                Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "commit bufferHeader 0x%x share_fd = 0x%x nBytesize = %d", bufferHeader, pRockchipPort->extendBufferHeader[i].buf_fd[0], nBytesize);
             }
         } else {
             Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "cma case gpu vmalloc can't used");

@@ -5,7 +5,7 @@ cd $local_path
 git_info_txt=`git log \-1`; ret_info=$?
 if [ $ret_info -eq 0 ]
 then {
-    git_commit=`git log \-1 | grep commit`;
+    git_commit=`git log \-1 | grep commit | head -n 1`;
 } fi
 sf_author=$LOGNAME
 sf_date=`date -R`
