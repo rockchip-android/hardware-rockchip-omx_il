@@ -77,6 +77,7 @@ OMX_S32 rga_dev_close(void *rga_ctx)
 #endif
 }
 #ifndef USE_DRM
+#define RGA_BUF_GEM_TYPE_DMA 0x80
 OMX_S32 rga_copy(RockchipVideoPlane *plane, VPUMemLinear_t *vpumem, uint32_t Width, uint32_t Height, int format, int rga_fd)
 {
     struct rga_req  Rga_Request;
@@ -130,6 +131,7 @@ OMX_S32 rga_copy(RockchipVideoPlane *plane, VPUMemLinear_t *vpumem, uint32_t Wid
     Rga_Request.dst.y_offset = 0;
     Rga_Request.rotate_mode = 0;
     Rga_Request.render_mode = 5;
+    Rga_Request.render_mode |= RGA_BUF_GEM_TYPE_DMA; 
     if (plane->type == ANB_PRIVATE_BUF_VIRTUAL) {
         Rga_Request.src.uv_addr = (OMX_U32)plane->addr;
         Rga_Request.mmu_info.mmu_en = 1;
