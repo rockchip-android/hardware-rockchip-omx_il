@@ -132,6 +132,7 @@ typedef struct _RKVPU_OMX_VIDEODEC_COMPONENT {
     FILE *fp_in;
     OMX_BOOL bPrintFps;
     OMX_BOOL bPrintBufferPosition;
+    OMX_BOOL bGtsTest;
     void *rkapi_hdl;
 
     OMX_S32 (*rkvpu_open_cxt)(VpuCodecContext_t **ctx);

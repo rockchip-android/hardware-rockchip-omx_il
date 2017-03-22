@@ -223,7 +223,7 @@ OMX_ERRORTYPE Rkvpu_OMX_DebugSwitchfromPropget(
     char                           value[PROPERTY_VALUE_MAX];
     memset(value, 0, sizeof(value));
     if (property_get("record_omx_dec_in", value, "0") && (atoi(value) > 0)) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Start recording stream to /data/video/dec_in.bin");
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "Start recording stream to /data/video/dec_in.bin");
         if (pVideoDec->fp_in != NULL) {
             fclose(pVideoDec->fp_in);
         }
@@ -232,14 +232,20 @@ OMX_ERRORTYPE Rkvpu_OMX_DebugSwitchfromPropget(
 
     memset(value, 0, sizeof(value));
     if (property_get("dump_omx_fps", value, "0") && (atoi(value) > 0)) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Start print framerate when frameCount = 32");
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "Start print framerate when frameCount = 32");
         pVideoDec->bPrintFps = OMX_TRUE;
     }
 
     memset(value, 0, sizeof(value));
     if (property_get("dump_omx_buf_position", value, "0") && (atoi(value) > 0)) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "print all buf position");
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "print all buf position");
         pVideoDec->bPrintBufferPosition = OMX_TRUE;
+    }
+
+    memset(value, 0, sizeof(value));
+    if (property_get("cts_gts.media.gts", value, NULL) && (!strcasecmp(value, "true"))) {
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "This is gts test.");
+        pVideoDec->bGtsTest = OMX_TRUE;
     }
 
     return ret;
@@ -573,7 +579,7 @@ OMX_BOOL Rkvpu_Post_OutputFrame(OMX_COMPONENTTYPE *pOMXComponent)
                 controlFPS(isInput);
             }
 
-            if (pframe->ErrorInfo) {   //drop frame when this frame mark error from dec
+            if (pframe->ErrorInfo && (pVideoDec->bGtsTest == OMX_FALSE)) {   //drop frame when this frame mark error from dec
                 if (pframe->vpumem.phy_addr > 0) {
                     VPUMemLink(&pframe->vpumem);
                     VPUFreeLinear(&pframe->vpumem);
@@ -1202,6 +1208,7 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentConstructor(OMX_HANDLETYPE hComponent, OMX_S
     pVideoDec->bFastMode = OMX_FALSE;
     pVideoDec->bPrintFps = OMX_FALSE;
     pVideoDec->bPrintBufferPosition = OMX_FALSE;
+    pVideoDec->bGtsTest = OMX_FALSE;
     pVideoDec->fp_in = NULL;
     pRockchipComponent->bMultiThreadProcess = OMX_TRUE;
     pRockchipComponent->codecType = HW_VIDEO_DEC_CODEC;
