@@ -249,7 +249,7 @@ OMX_ERRORTYPE Rkvpu_OMX_AllocateBuffer(
 
     FunctionIn();
 
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "Rkvpu_OMX_AllocateBuffer in");
+    omx_err("Rkvpu_OMX_AllocateBuffer in");
     if (hComponent == NULL) {
         ret = OMX_ErrorBadParameter;
         goto EXIT;
@@ -334,7 +334,7 @@ OMX_ERRORTYPE Rkvpu_OMX_AllocateBuffer(
 EXIT:
     FunctionOut();
 
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "Rkvpu_OMX_AllocateBuffer in ret = 0x%x", ret);
+    omx_err("Rkvpu_OMX_AllocateBuffer in ret = 0x%x", ret);
     return ret;
 }
 
@@ -411,7 +411,7 @@ OMX_ERRORTYPE Rkvpu_OMX_FreeBuffer(
 EXIT:
     if (ret == OMX_ErrorNone) {
         if (pRockchipPort->assignedBufferNum == 0) {
-            Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "pRockchipPort->unloadedResource signal set");
+            omx_trace("pRockchipPort->unloadedResource signal set");
             /* Rockchip_OSAL_MutexLock(pRockchipPort->compMutex); */
             Rockchip_OSAL_SemaphorePost(pRockchipPort->unloadedResource);
             /* Rockchip_OSAL_MutexUnlock(pRockchipPort->compMutex); */
@@ -612,7 +612,7 @@ OMX_ERRORTYPE Rkvpu_OMX_BufferFlush(OMX_COMPONENTTYPE *pOMXComponent, OMX_S32 nP
     pRockchipComponent = (ROCKCHIP_OMX_BASECOMPONENT *)pOMXComponent->pComponentPrivate;
     pVideoEnc = (RKVPU_OMX_VIDEOENC_COMPONENT *)pRockchipComponent->hComponentHandle;
 
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "OMX_CommandFlush start, port:%d", nPortIndex);
+    omx_trace("OMX_CommandFlush start, port:%d", nPortIndex);
 
     pRockchipComponent->pRockchipPort[nPortIndex].bIsPortFlushed = OMX_TRUE;
 
@@ -648,7 +648,7 @@ OMX_ERRORTYPE Rkvpu_OMX_BufferFlush(OMX_COMPONENTTYPE *pOMXComponent, OMX_S32 nP
         }
 
         pRockchipComponent->pRockchipPort[nPortIndex].bIsPortFlushed = OMX_FALSE;
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "OMX_CommandFlush EventCmdComplete, port:%d", nPortIndex);
+        omx_trace("OMX_CommandFlush EventCmdComplete, port:%d", nPortIndex);
         if (bEvent == OMX_TRUE)
             pRockchipComponent->pCallbacks->EventHandler((OMX_HANDLETYPE)pOMXComponent,
                                                          pRockchipComponent->callbackData,
@@ -660,7 +660,7 @@ OMX_ERRORTYPE Rkvpu_OMX_BufferFlush(OMX_COMPONENTTYPE *pOMXComponent, OMX_S32 nP
 
 EXIT:
     if ((ret != OMX_ErrorNone) && (pOMXComponent != NULL) && (pRockchipComponent != NULL)) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "%s : %d", __FUNCTION__, __LINE__);
+        omx_err("ERROR");
         pRockchipComponent->pCallbacks->EventHandler(pOMXComponent,
                                                      pRockchipComponent->callbackData,
                                                      OMX_EventError,
@@ -784,7 +784,7 @@ OMX_ERRORTYPE Rkvpu_InputBufferGetQueue(ROCKCHIP_OMX_BASECOMPONENT *pRockchipCom
             Rockchip_OSAL_Free(message);
 
             if (inputUseBuffer->allocSize <= inputUseBuffer->dataLen)
-                Rockchip_OSAL_Log(ROCKCHIP_LOG_WARNING, "Input Buffer Full, Check input buffer size! allocSize:%d, dataLen:%d", inputUseBuffer->allocSize, inputUseBuffer->dataLen);
+                omx_warn("Input Buffer Full, Check input buffer size! allocSize:%d, dataLen:%d", inputUseBuffer->allocSize, inputUseBuffer->dataLen);
         }
         ret = OMX_ErrorNone;
     }
@@ -822,7 +822,7 @@ OMX_ERRORTYPE Rkvpu_OutputBufferReturn(OMX_COMPONENTTYPE *pOMXComponent, ROCKCHI
         }
 
         if ((bufferHeader->nFlags & OMX_BUFFERFLAG_EOS) == OMX_BUFFERFLAG_EOS) {
-            Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "event OMX_BUFFERFLAG_EOS!!!");
+            omx_trace("event OMX_BUFFERFLAG_EOS!!!");
             pRockchipComponent->pCallbacks->EventHandler(pOMXComponent,
                                                          pRockchipComponent->callbackData,
                                                          OMX_EventBufferFlag,
@@ -1211,7 +1211,7 @@ OMX_ERRORTYPE Rkvpu_OMX_GetParameter(
         OMX_U32 index = profileLevel->nProfileIndex;
         OMX_U32 nProfileLevels = 0;
         if (profileLevel->nPortIndex  >= ALL_PORT_NUM) {
-            Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "Invalid port index: %ld", profileLevel->nPortIndex);
+            omx_err("Invalid port index: %ld", profileLevel->nPortIndex);
             ret = OMX_ErrorUnsupportedIndex;
             goto EXIT;
         }
@@ -1243,7 +1243,7 @@ OMX_ERRORTYPE Rkvpu_OMX_GetParameter(
     case OMX_IndexParamRkEncExtendedVideo: {   // extern for huawei param setting
         OMX_VIDEO_PARAMS_EXTENDED  *params_extend = (OMX_VIDEO_PARAMS_EXTENDED *)ComponentParameterStructure;
         RKVPU_OMX_VIDEOENC_COMPONENT *pVideoEnc = (RKVPU_OMX_VIDEOENC_COMPONENT *)pRockchipComponent->hComponentHandle;
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_DEBUG, "get OMX_IndexParamRkEncExtendedVideo in ");
+        omx_dbg("get OMX_IndexParamRkEncExtendedVideo in ");
         Rockchip_OSAL_MutexLock(pVideoEnc->bScale_Mutex);
         Rockchip_OSAL_Memcpy(params_extend, &pVideoEnc->params_extend, sizeof(OMX_VIDEO_PARAMS_EXTENDED));
         Rockchip_OSAL_MutexUnlock(pVideoEnc->bScale_Mutex);
@@ -1403,7 +1403,7 @@ OMX_ERRORTYPE Rkvpu_OMX_SetParameter(
         if (portIndex == INPUT_PORT_INDEX) {
             ROCKCHIP_OMX_BASEPORT *pRockchipOutputPort = &pRockchipComponent->pRockchipPort[OUTPUT_PORT_INDEX];
             UpdateFrameSize(pOMXComponent);
-            Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "pRockchipOutputPort->portDefinition.nBufferSize: %d",
+            omx_trace("pRockchipOutputPort->portDefinition.nBufferSize: %d",
                               pRockchipOutputPort->portDefinition.nBufferSize);
         }
         ret = OMX_ErrorNone;
@@ -1422,7 +1422,7 @@ OMX_ERRORTYPE Rkvpu_OMX_SetParameter(
             if (pIntraRefresh->eRefreshMode == OMX_VIDEO_IntraRefreshCyclic) {
                 pVideoEnc->intraRefresh.eRefreshMode = pIntraRefresh->eRefreshMode;
                 pVideoEnc->intraRefresh.nCirMBs = pIntraRefresh->nCirMBs;
-                Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "OMX_VIDEO_IntraRefreshCyclic Enable, nCirMBs: %d",
+                omx_trace("OMX_VIDEO_IntraRefreshCyclic Enable, nCirMBs: %d",
                                   pVideoEnc->intraRefresh.nCirMBs);
             } else {
                 ret = OMX_ErrorUnsupportedSetting;
@@ -1446,7 +1446,7 @@ OMX_ERRORTYPE Rkvpu_OMX_SetParameter(
         pVideoEnc = (RKON2_OMX_VIDEOENC_COMPONENT *)pRockchipComponent->hComponentHandle;
         PrependSPSPPSToIDRFramesParams *PrependParams =
             (PrependSPSPPSToIDRFramesParams*)ComponentParameterStructure;
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "OMX_IndexParamPrependSPSPPSToIDR set true");
+        omx_trace("OMX_IndexParamPrependSPSPPSToIDR set true");
 
         pVideoEnc->bPrependSpsPpsToIdr = PrependParams->bEnable;
 
@@ -1523,13 +1523,13 @@ OMX_ERRORTYPE Rkvpu_OMX_SetParameter(
         OMX_VIDEO_PARAMS_EXTENDED  *params_extend = (OMX_VIDEO_PARAMS_EXTENDED *)ComponentParameterStructure;
         RKVPU_OMX_VIDEOENC_COMPONENT *pVideoEnc = (RKVPU_OMX_VIDEOENC_COMPONENT *)pRockchipComponent->hComponentHandle;
 
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_DEBUG, "OMX_IndexParamRkEncExtendedVideo in ");
+        omx_dbg("OMX_IndexParamRkEncExtendedVideo in ");
         if (ret != OMX_ErrorNone) {
             goto EXIT;
         }
         Rockchip_OSAL_MutexLock(pVideoEnc->bScale_Mutex);
         Rockchip_OSAL_Memcpy(&pVideoEnc->params_extend, params_extend, sizeof(OMX_VIDEO_PARAMS_EXTENDED));
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_DEBUG, "OMX_IndexParamRkEncExtendedVideo in flags %d bEableCrop %d,cl %d cr %d ct %d cb %d, bScaling %d ScaleW %d ScaleH %d",
+        omx_dbg("OMX_IndexParamRkEncExtendedVideo in flags %d bEableCrop %d,cl %d cr %d ct %d cb %d, bScaling %d ScaleW %d ScaleH %d",
                           pVideoEnc->params_extend.ui32Flags, pVideoEnc->params_extend.bEnableCropping, pVideoEnc->params_extend.ui16CropLeft, pVideoEnc->params_extend.ui16CropRight,
                           pVideoEnc->params_extend.ui16CropTop, pVideoEnc->params_extend.ui16CropBottom, pVideoEnc->params_extend.bEnableScaling,
                           pVideoEnc->params_extend.ui16ScaledWidth, pVideoEnc->params_extend.ui16ScaledHeight);
@@ -1715,7 +1715,7 @@ OMX_ERRORTYPE Rkvpu_OMX_SetConfig(
                 EncParameter_t vpug;
                 p_vpu_ctx->control(p_vpu_ctx, VPU_API_ENC_GETCFG, (void*)&vpug);
                 vpug.bitRate = pEncodeBitrate->nEncodeBitrate;
-                Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "set bitRate %d", pEncodeBitrate->nEncodeBitrate);
+                omx_err("set bitRate %d", pEncodeBitrate->nEncodeBitrate);
                 p_vpu_ctx->control(p_vpu_ctx, VPU_API_ENC_SETCFG, (void*)&vpug);
             }
         }

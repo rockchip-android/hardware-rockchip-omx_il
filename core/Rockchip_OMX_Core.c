@@ -63,24 +63,24 @@ OMX_API OMX_ERRORTYPE OMX_APIENTRY RKOMX_Init(void)
     if (gInitialized == 0) {
         if (Rockchip_OMX_Component_Register(&gComponentList, &gComponentNum)) {
             ret = OMX_ErrorInsufficientResources;
-            Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "Rockchip_OMX_Init : %s", "OMX_ErrorInsufficientResources");
+            omx_err("Rockchip_OMX_Init : %s", "OMX_ErrorInsufficientResources");
             goto EXIT;
         }
 
         ret = Rockchip_OMX_ResourceManager_Init();
         if (OMX_ErrorNone != ret) {
-            Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "Rockchip_OMX_Init : Rockchip_OMX_ResourceManager_Init failed");
+            omx_err("Rockchip_OMX_Init : Rockchip_OMX_ResourceManager_Init failed");
             goto EXIT;
         }
 
         ret = Rockchip_OSAL_MutexCreate(&ghLoadComponentListMutex);
         if (OMX_ErrorNone != ret) {
-            Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "Rockchip_OMX_Init : Rockchip_OSAL_MutexCreate(&ghLoadComponentListMutex) failed");
+            omx_err("Rockchip_OMX_Init : Rockchip_OSAL_MutexCreate(&ghLoadComponentListMutex) failed");
             goto EXIT;
         }
 
         gInitialized = 1;
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Rockchip_OMX_Init : %s", "OMX_ErrorNone");
+        omx_trace("Rockchip_OMX_Init : %s", "OMX_ErrorNone");
     }
 
 EXIT:
@@ -164,7 +164,7 @@ OMX_API OMX_ERRORTYPE OMX_APIENTRY RKOMX_GetHandle(
         ret = OMX_ErrorBadParameter;
         goto EXIT;
     }
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "ComponentName : %s", cComponentName);
+    omx_trace("ComponentName : %s", cComponentName);
 
     for (i = 0; i < gComponentNum; i++) {
         if (Rockchip_OSAL_Strcmp(cComponentName, gComponentList[i].component.componentName) == 0) {
@@ -176,7 +176,7 @@ OMX_API OMX_ERRORTYPE OMX_APIENTRY RKOMX_GetHandle(
             ret = Rockchip_OMX_ComponentLoad(loadComponent);
             if (ret != OMX_ErrorNone) {
                 Rockchip_OSAL_Free(loadComponent);
-                Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_Error, Line:%d", __LINE__);
+                omx_err("OMX_Error, Line:%d", __LINE__);
                 goto EXIT;
             }
 
@@ -184,7 +184,7 @@ OMX_API OMX_ERRORTYPE OMX_APIENTRY RKOMX_GetHandle(
             if (ret != OMX_ErrorNone) {
                 Rockchip_OMX_ComponentUnload(loadComponent);
                 Rockchip_OSAL_Free(loadComponent);
-                Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_Error 0x%x, Line:%d", ret, __LINE__);
+                omx_err("OMX_Error 0x%x, Line:%d", ret, __LINE__);
                 goto EXIT;
             }
 
@@ -192,7 +192,7 @@ OMX_API OMX_ERRORTYPE OMX_APIENTRY RKOMX_GetHandle(
             if (ret != OMX_ErrorNone) {
                 Rockchip_OMX_ComponentUnload(loadComponent);
                 Rockchip_OSAL_Free(loadComponent);
-                Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_Error 0x%x, Line:%d", ret, __LINE__);
+                omx_err("OMX_Error 0x%x, Line:%d", ret, __LINE__);
 
                 goto EXIT;
             }
@@ -210,7 +210,7 @@ OMX_API OMX_ERRORTYPE OMX_APIENTRY RKOMX_GetHandle(
 
             *pHandle = loadComponent->pOMXComponent;
             ret = OMX_ErrorNone;
-            Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Rockchip_OMX_GetHandle : %s", "OMX_ErrorNone");
+            omx_trace("Rockchip_OMX_GetHandle : %s", "OMX_ErrorNone");
             goto EXIT;
         }
     }

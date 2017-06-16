@@ -230,8 +230,8 @@ void Rockchip_OSAL_PerfPrint(OMX_STRING prefix, PERF_ID_TYPE id)
     frameCount = Rockchip_OSAL_PerfFrameCount(id);
     perfTotal = Rockchip_OSAL_PerfTotal(id);
 
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "%s Frame Count: %d", prefix, frameCount);
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "%s Avg Time: %.2f ms, Over 30ms: %d",
+    omx_info("%s Frame Count: %d", prefix, frameCount);
+    omx_info("%s Avg Time: %.2f ms, Over 30ms: %d",
                       prefix, (float)perfTotal / (float)(frameCount * 1000),
                       Rockchip_OSAL_PerfOver30ms(id));
 }

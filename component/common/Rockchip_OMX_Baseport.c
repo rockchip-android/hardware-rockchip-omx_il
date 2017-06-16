@@ -83,7 +83,7 @@ OMX_ERRORTYPE Rockchip_OMX_OutputBufferReturn(OMX_COMPONENTTYPE *pOMXComponent, 
     pRockchipComponent->pCallbacks->FillBufferDone(pOMXComponent, pRockchipComponent->callbackData, bufferHeader);
 
 EXIT:
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "%s : %d, bufferHeader:0x%x", __FUNCTION__, __LINE__, bufferHeader);
+    omx_trace("bufferHeader:0x%x", bufferHeader);
     return ret;
 }
 
@@ -126,7 +126,7 @@ OMX_ERRORTYPE Rockchip_OMX_BufferFlushProcess(OMX_COMPONENTTYPE *pOMXComponent, 
 
 EXIT:
     if ((ret != OMX_ErrorNone) && (pOMXComponent != NULL) && (pRockchipComponent != NULL)) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "%s : %d", __FUNCTION__, __LINE__);
+        omx_err("ERROR");
         pRockchipComponent->pCallbacks->EventHandler(pOMXComponent,
                                                      pRockchipComponent->callbackData,
                                                      OMX_EventError,
@@ -552,7 +552,7 @@ OMX_ERRORTYPE Rockchip_OMX_Port_Constructor(OMX_HANDLETYPE hComponent)
 
     if (hComponent == NULL) {
         ret = OMX_ErrorBadParameter;
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorBadParameter, Line:%d", __LINE__);
+        omx_err("OMX_ErrorBadParameter, Line:%d", __LINE__);
         goto EXIT;
     }
     pOMXComponent = (OMX_COMPONENTTYPE *)hComponent;
@@ -563,7 +563,7 @@ OMX_ERRORTYPE Rockchip_OMX_Port_Constructor(OMX_HANDLETYPE hComponent)
 
     if (pOMXComponent->pComponentPrivate == NULL) {
         ret = OMX_ErrorBadParameter;
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorBadParameter, Line:%d", __LINE__);
+        omx_err("OMX_ErrorBadParameter, Line:%d", __LINE__);
         goto EXIT;
     }
     pRockchipComponent = (ROCKCHIP_OMX_BASECOMPONENT *)pOMXComponent->pComponentPrivate;
@@ -575,7 +575,7 @@ OMX_ERRORTYPE Rockchip_OMX_Port_Constructor(OMX_HANDLETYPE hComponent)
     pRockchipPort = Rockchip_OSAL_Malloc(sizeof(ROCKCHIP_OMX_BASEPORT) * ALL_PORT_NUM);
     if (pRockchipPort == NULL) {
         ret = OMX_ErrorInsufficientResources;
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorInsufficientResources, Line:%d", __LINE__);
+        omx_err("OMX_ErrorInsufficientResources, Line:%d", __LINE__);
         goto EXIT;
     }
     Rockchip_OSAL_Memset(pRockchipPort, 0, sizeof(ROCKCHIP_OMX_BASEPORT) * ALL_PORT_NUM);
@@ -591,7 +591,7 @@ OMX_ERRORTYPE Rockchip_OMX_Port_Constructor(OMX_HANDLETYPE hComponent)
         Rockchip_OSAL_Free(pRockchipPort);
         pRockchipPort = NULL;
         ret = OMX_ErrorInsufficientResources;
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorInsufficientResources, Line:%d", __LINE__);
+        omx_err("OMX_ErrorInsufficientResources, Line:%d", __LINE__);
         goto EXIT;
     }
     Rockchip_OSAL_Memset(pRockchipInputPort->extendBufferHeader, 0, sizeof(ROCKCHIP_OMX_BUFFERHEADERTYPE) * MAX_BUFFER_NUM);
@@ -603,7 +603,7 @@ OMX_ERRORTYPE Rockchip_OMX_Port_Constructor(OMX_HANDLETYPE hComponent)
         Rockchip_OSAL_Free(pRockchipPort);
         pRockchipPort = NULL;
         ret = OMX_ErrorInsufficientResources;
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorInsufficientResources, Line:%d", __LINE__);
+        omx_err("OMX_ErrorInsufficientResources, Line:%d", __LINE__);
         goto EXIT;
     }
     Rockchip_OSAL_Memset(pRockchipInputPort->bufferStateAllocate, 0, sizeof(OMX_U32) * MAX_BUFFER_NUM);
@@ -891,7 +891,7 @@ OMX_ERRORTYPE Rockchip_Shared_BufferToData(ROCKCHIP_OMX_DATABUFFER *pUseBuffer, 
         /* Case of Shared Buffer, Only support singlePlaneBuffer */
         pData->buffer.singlePlaneBuffer.dataBuffer = pUseBuffer->bufferHeader->pBuffer;
     } else {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "Can not support plane");
+        omx_err("Can not support plane");
         ret = OMX_ErrorNotImplemented;
         goto EXIT;
     }

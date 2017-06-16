@@ -55,7 +55,7 @@ OMX_ERRORTYPE Rockchip_OSAL_SemaphoreCreate(OMX_HANDLETYPE *semaphoreHandle)
 
     *semaphoreHandle = (OMX_HANDLETYPE)sema;
 
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Rockchip_OSAL_SemaphorePost %p", sema);
+    omx_trace("Rockchip_OSAL_SemaphorePost %p", sema);
     return OMX_ErrorNone;
 }
 
@@ -75,7 +75,7 @@ OMX_ERRORTYPE Rockchip_OSAL_SemaphoreTerminate(OMX_HANDLETYPE semaphoreHandle)
 
 OMX_ERRORTYPE Rockchip_OSAL_SemaphoreWait(OMX_HANDLETYPE semaphoreHandle)
 {
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Rockchip_OSAL_SemaphoreWait %p", semaphoreHandle);
+    omx_trace("Rockchip_OSAL_SemaphoreWait %p", semaphoreHandle);
     sem_t *sema = (sem_t *)semaphoreHandle;
 
     FunctionIn();
@@ -94,7 +94,7 @@ OMX_ERRORTYPE Rockchip_OSAL_SemaphoreWait(OMX_HANDLETYPE semaphoreHandle)
 OMX_ERRORTYPE Rockchip_OSAL_SemaphorePost(OMX_HANDLETYPE semaphoreHandle)
 {
 
-    // Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR,"Rockchip_OSAL_SemaphorePost %p",semaphoreHandle);
+    // omx_err("Rockchip_OSAL_SemaphorePost %p",semaphoreHandle);
     sem_t *sema = (sem_t *)semaphoreHandle;
 
     FunctionIn();

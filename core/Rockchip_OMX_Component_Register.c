@@ -100,7 +100,7 @@ OMX_ERRORTYPE Rockchip_OMX_Component_Register(ROCKCHIP_OMX_COMPONENT_REGLIST **c
                 Rockchip_OSAL_Free(rockchipComponentsTemp);
             } else {
                 if ((errorMsg = Rockchip_OSAL_dlerror()) != NULL)
-                    Rockchip_OSAL_Log(ROCKCHIP_LOG_WARNING, "dlsym failed: %s", errorMsg);
+                    omx_warn("dlsym failed: %s", errorMsg);
             }
             Rockchip_OSAL_dlclose(soHandle);
         }
@@ -166,7 +166,7 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentLoad(ROCKCHIP_OMX_COMPONENT *rockchip_compon
     libHandle = Rockchip_OSAL_dlopen((OMX_STRING)rockchip_component->libName, RTLD_NOW);
     if (!libHandle) {
         ret = OMX_ErrorInvalidComponentName;
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorInvalidComponentName, Line:%d", __LINE__);
+        omx_err("OMX_ErrorInvalidComponentName, Line:%d", __LINE__);
         goto EXIT;
     }
 
@@ -174,7 +174,7 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentLoad(ROCKCHIP_OMX_COMPONENT *rockchip_compon
     if (!Rockchip_OMX_ComponentConstructor) {
         Rockchip_OSAL_dlclose(libHandle);
         ret = OMX_ErrorInvalidComponent;
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorInvalidComponent, Line:%d", __LINE__);
+        omx_err("OMX_ErrorInvalidComponent, Line:%d", __LINE__);
         goto EXIT;
     }
 
@@ -185,7 +185,7 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentLoad(ROCKCHIP_OMX_COMPONENT *rockchip_compon
         Rockchip_OSAL_Free(pOMXComponent);
         Rockchip_OSAL_dlclose(libHandle);
         ret = OMX_ErrorInvalidComponent;
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorInvalidComponent, Line:%d", __LINE__);
+        omx_err("OMX_ErrorInvalidComponent, Line:%d", __LINE__);
         goto EXIT;
     } else {
         if (Rockchip_OMX_ComponentAPICheck(pOMXComponent) != OMX_ErrorNone) {
@@ -194,7 +194,7 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentLoad(ROCKCHIP_OMX_COMPONENT *rockchip_compon
             Rockchip_OSAL_Free(pOMXComponent);
             Rockchip_OSAL_dlclose(libHandle);
             ret = OMX_ErrorInvalidComponent;
-            Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorInvalidComponent, Line:%d", __LINE__);
+            omx_err("OMX_ErrorInvalidComponent, Line:%d", __LINE__);
             goto EXIT;
         }
         rockchip_component->libHandle = libHandle;

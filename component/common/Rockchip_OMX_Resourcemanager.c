@@ -196,7 +196,7 @@ OMX_ERRORTYPE Rockchip_OMX_ResourceManager_Init()
 
     FunctionIn();
     ret = Rockchip_OSAL_MutexCreate(&ghVideoRMComponentListMutex);
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Rockchip_OSAL_MutexCreate ghVideoRMComponentListMutex 0x%x", ghVideoRMComponentListMutex);
+    omx_trace("Rockchip_OSAL_MutexCreate ghVideoRMComponentListMutex 0x%x", ghVideoRMComponentListMutex);
     FunctionOut();
 
     return ret;
@@ -210,7 +210,7 @@ OMX_ERRORTYPE Rockchip_OMX_ResourceManager_Deinit()
 
     FunctionIn();
 
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "ghVideoRMComponentListMutex lock in 0x%x", ghVideoRMComponentListMutex);
+    omx_trace("ghVideoRMComponentListMutex lock in 0x%x", ghVideoRMComponentListMutex);
     Rockchip_OSAL_MutexLock(ghVideoRMComponentListMutex);
 
     if (gpVideoDecRMComponentList) {
@@ -253,7 +253,7 @@ OMX_ERRORTYPE Rockchip_OMX_ResourceManager_Deinit()
 
     Rockchip_OSAL_MutexUnlock(ghVideoRMComponentListMutex);
 
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Rockchip_OSAL_MutexTerminate ghVideoRMComponentListMutex lock in 0x%x", ghVideoRMComponentListMutex);
+    omx_trace("Rockchip_OSAL_MutexTerminate ghVideoRMComponentListMutex lock in 0x%x", ghVideoRMComponentListMutex);
     Rockchip_OSAL_MutexTerminate(ghVideoRMComponentListMutex);
     ghVideoRMComponentListMutex = NULL;
 
@@ -279,7 +279,7 @@ OMX_ERRORTYPE Rockchip_OMX_Check_Resource(OMX_COMPONENTTYPE *pOMXComponent)
     pRockchipComponent = (ROCKCHIP_OMX_BASECOMPONENT *)pOMXComponent->pComponentPrivate;
     pRockchipComponent->rkversion = OMX_COMPILE_INFO;
 
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "pRockchipComponent->codecType %d, Line:%d", pRockchipComponent->codecType, __LINE__);
+    omx_err("pRockchipComponent->codecType %d, Line:%d", pRockchipComponent->codecType, __LINE__);
     if (pRockchipComponent->codecType == HW_VIDEO_DEC_CODEC) {
         pComponentTemp = gpVideoDecRMComponentList;
         if (pComponentTemp != NULL) {

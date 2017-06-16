@@ -40,7 +40,7 @@ static int mem_cnt = 0;
 OMX_PTR Rockchip_OSAL_Malloc(OMX_U32 size)
 {
     mem_cnt++;
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "alloc count: %d", mem_cnt);
+    omx_trace("alloc count: %d", mem_cnt);
 
     return (OMX_PTR)malloc(size);
 }
@@ -48,7 +48,7 @@ OMX_PTR Rockchip_OSAL_Malloc(OMX_U32 size)
 void Rockchip_OSAL_Free(OMX_PTR addr)
 {
     mem_cnt--;
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "free count: %d", mem_cnt);
+    omx_trace("free count: %d", mem_cnt);
 
     if (addr)
         free(addr);

@@ -43,7 +43,7 @@ OMX_S32 rga_dev_open(void **rga_ctx)
     ctx->rga_fd = -1;
     ctx->rga_fd = open("/dev/rga", O_RDWR, 0);
     if (ctx->rga_fd < 0) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "rga open fail");
+        omx_err("rga open fail");
         return -1;
     }
     *rga_ctx = ctx;
@@ -148,12 +148,12 @@ OMX_S32 rga_copy(RockchipVideoPlane *plane, VPUMemLinear_t *vpumem, uint32_t Wid
             Rga_Request.mmu_info.mmu_flag |= ((1 << 31) | (1 << 10) | (1 << 8));
         }
     }
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "rga start in");
+    omx_trace("rga start in");
     if (ioctl(rga_fd, RGA_BLIT_SYNC, &Rga_Request) != 0) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "rga rga_copy fail");
+        omx_err("rga rga_copy fail");
         return -1;
     }
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "rga start out");
+    omx_trace("rga start out");
     return 0;
 }
 
@@ -250,13 +250,13 @@ OMX_S32 rga_crop_scale(RockchipVideoPlane *plane,
         }
     }
 
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "rga start in");
+    omx_trace("rga start in");
 
     if (ioctl(rga_fd, RGA_BLIT_SYNC, &Rga_Request) != 0) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "rga_rgb2nv12 rga RGA_BLIT_SYNC fail");
+        omx_err("rga_rgb2nv12 rga RGA_BLIT_SYNC fail");
         return -1;
     }
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "rga start out");
+    omx_trace("rga start out");
     return 0;
 }
 
@@ -347,7 +347,7 @@ OMX_S32 rga_convert(rga_info_t *src, rga_info_t *dst, int rga_fd)
         }
     }
     if (ioctl(rga_fd, RGA_BLIT_SYNC, &Rga_Request) != 0) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "rga_convert fail");
+        omx_err("rga_convert fail");
         return -1;
     }
     return 0;
@@ -364,7 +364,7 @@ void rga_nv12_crop_scale(RockchipVideoPlane *plane,
         return;
     }
     if (rga_crop_scale(plane, vpumem, param_video, orgin_w, orgin_h, ctx->rga_fd) < 0) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "rga_crop_scale fail");
+        omx_err("rga_crop_scale fail");
     }
 #else
     RK_U32 new_width = 0, new_height = 0;
@@ -398,7 +398,7 @@ void rga_nv12_crop_scale(RockchipVideoPlane *plane,
     src.fd = plane->fd;
     dst.fd = vpumem->phy_addr;
     if (RgaBlit(&src, &dst, NULL)) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "%s RgaBlit fail", __FUNCTION__);
+        omx_err("RgaBlit fail");
     }
 #endif
 }
@@ -420,7 +420,7 @@ void rga_rgb2nv12(RockchipVideoPlane *plane, VPUMemLinear_t *vpumem,
     rga_set_info(&src, Width, Height, plane->stride, Height, plane->fd, RK_FORMAT_RGBA_8888, (void *)plane->addr, plane->type);
     rga_set_info(&dst, Width, Height, Width, Height, vpumem->phy_addr, RK_FORMAT_YCbCr_420_SP, (void *)vpumem->vir_addr, 0);
     if (rga_convert(&src, &dst, ctx->rga_fd) < 0) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "rga_rgb2nv12 fail");
+        omx_err("rga_rgb2nv12 fail");
     }
 #else
     rga_info_t src;
@@ -428,16 +428,16 @@ void rga_rgb2nv12(RockchipVideoPlane *plane, VPUMemLinear_t *vpumem,
     (void) rga_ctx;
     memset((void*)&src, 0, sizeof(rga_info_t));
     memset((void*)&dst, 0, sizeof(rga_info_t));
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, " plane->stride %d", plane->stride);
+    omx_trace(" plane->stride %d", plane->stride);
     rga_set_rect(&src.rect, 0, 0, Width, Height, plane->stride, Height, HAL_PIXEL_FORMAT_RGBA_8888);
     rga_set_rect(&dst.rect, 0, 0, Width, Height, Width, Height, HAL_PIXEL_FORMAT_YCrCb_NV12);
     src.fd = plane->fd;
     dst.fd = vpumem->phy_addr;
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "RgaBlit in src.fd = 0x%x, dst.fd = 0x%x", src.fd, dst.fd);
+    omx_trace("RgaBlit in src.fd = 0x%x, dst.fd = 0x%x", src.fd, dst.fd);
     if (RgaBlit(&src, &dst, NULL)) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "%s RgaBlit fail", __FUNCTION__);
+        omx_err("RgaBlit fail");
     }
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "RgaBlit out");
+    omx_trace("RgaBlit out");
 #endif
 }
 
@@ -457,7 +457,7 @@ void rga_nv122rgb( RockchipVideoPlane *planes, VPUMemLinear_t *vpumem, uint32_t 
         return;
     }
     if (rga_convert(&src, &dst, ctx->rga_fd) < 0) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "rga_nv122rgb fail");
+        omx_err("rga_nv122rgb fail");
     }
 #else
     rga_info_t src;
@@ -476,7 +476,7 @@ void rga_nv122rgb( RockchipVideoPlane *planes, VPUMemLinear_t *vpumem, uint32_t 
     src.fd = vpumem->phy_addr;
     dst.fd = planes->fd;
     if (RgaBlit(&src, &dst, NULL)) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "%s RgaBlit fail", __FUNCTION__);
+        omx_err("RgaBlit fail");
     }
 #endif
 }
@@ -491,7 +491,7 @@ void rga_nv12_copy(RockchipVideoPlane *plane, VPUMemLinear_t *vpumem, uint32_t W
     }
 
     if (rga_copy(plane, vpumem, Width, Height, format, ctx->rga_fd) < 0) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "rga_nv12_copy fail");
+        omx_err("rga_nv12_copy fail");
     }
 #else
     rga_info_t src;
@@ -504,7 +504,7 @@ void rga_nv12_copy(RockchipVideoPlane *plane, VPUMemLinear_t *vpumem, uint32_t W
     src.fd = plane->fd;
     dst.fd = vpumem->phy_addr;
     if (RgaBlit(&src, &dst, NULL)) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "%s RgaBlit fail", __FUNCTION__);
+        omx_err("RgaBlit fail");
     }
 
 #endif
@@ -518,7 +518,7 @@ void rga_rgb_copy(RockchipVideoPlane *plane, VPUMemLinear_t *vpumem, uint32_t Wi
         return;
     }
     if (rga_copy(plane, vpumem, Width, Height, format, ctx->rga_fd) < 0) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "rga_nv12_copy fail");
+        omx_err("rga_nv12_copy fail");
     }
 #else
     rga_info_t src;
@@ -531,7 +531,7 @@ void rga_rgb_copy(RockchipVideoPlane *plane, VPUMemLinear_t *vpumem, uint32_t Wi
     src.fd = plane->fd;
     dst.fd = vpumem->phy_addr;
     if (RgaBlit(&src, &dst, NULL)) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "%s RgaBlit fail", __FUNCTION__);
+        omx_err("RgaBlit fail");
     }
 #endif
 }

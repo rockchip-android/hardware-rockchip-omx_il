@@ -203,7 +203,7 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentStateSet(OMX_COMPONENTTYPE *pOMXComponent, O
         Rockchip_OMX_Release_Resource(pOMXComponent);
     }
 
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "destState: %d currentState: %d", destState, currentState);
+    omx_trace("destState: %d currentState: %d", destState, currentState);
     switch (destState) {
     case OMX_StateInvalid:
         switch (currentState) {
@@ -330,7 +330,7 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentStateSet(OMX_COMPONENTTYPE *pOMXComponent, O
     case OMX_StateIdle:
         switch (currentState) {
         case OMX_StateLoaded:
-            Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "OMX_StateLoaded in loadedResource");
+            omx_trace("OMX_StateLoaded in loadedResource");
             for (i = 0; i < pRockchipComponent->portParam.nPorts; i++) {
                 pRockchipPort = (pRockchipComponent->pRockchipPort + i);
                 if (pRockchipPort == NULL) {
@@ -345,11 +345,11 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentStateSet(OMX_COMPONENTTYPE *pOMXComponent, O
                     }
                 } else {
                     if (CHECK_PORT_ENABLED(pRockchipPort)) {
-                        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Rockchip_OSAL_SemaphoreWait loadedResource ");
+                        omx_trace("Rockchip_OSAL_SemaphoreWait loadedResource ");
                         Rockchip_OSAL_SemaphoreWait(pRockchipComponent->pRockchipPort[i].loadedResource);
-                        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Rockchip_OSAL_SemaphoreWait loadedResource out");
+                        omx_trace("Rockchip_OSAL_SemaphoreWait loadedResource out");
                         if (pRockchipComponent->abendState == OMX_TRUE) {
-                            Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "Rockchip_OSAL_SemaphoreWait abendState == OMX_TRUE");
+                            omx_err("Rockchip_OSAL_SemaphoreWait abendState == OMX_TRUE");
                             Rockchip_OSAL_SignalSet(pRockchipComponent->abendStateEvent);
                             ret = Rockchip_OMX_Release_Resource(pOMXComponent);
                             goto EXIT;
@@ -359,7 +359,7 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentStateSet(OMX_COMPONENTTYPE *pOMXComponent, O
                 }
             }
 
-            Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "rockchip_codec_componentInit");
+            omx_trace("rockchip_codec_componentInit");
             ret = pRockchipComponent->rockchip_codec_componentInit(pOMXComponent);
             if (ret != OMX_ErrorNone) {
                 /*
@@ -382,7 +382,7 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentStateSet(OMX_COMPONENTTYPE *pOMXComponent, O
                 ret = Rockchip_OSAL_SemaphoreCreate(&pRockchipComponent->pRockchipPort[i].bufferSemID);
                 if (ret != OMX_ErrorNone) {
                     ret = OMX_ErrorInsufficientResources;
-                    Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorInsufficientResources, Line:%d", __LINE__);
+                    omx_err("OMX_ErrorInsufficientResources, Line:%d", __LINE__);
                     goto EXIT;
                 }
             }
@@ -391,20 +391,20 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentStateSet(OMX_COMPONENTTYPE *pOMXComponent, O
                     ret = Rockchip_OSAL_MutexCreate(&pRockchipComponent->pRockchipPort[i].way.port1WayDataBuffer.dataBuffer.bufferMutex);
                     if (ret != OMX_ErrorNone) {
                         ret = OMX_ErrorInsufficientResources;
-                        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorInsufficientResources, Line:%d", __LINE__);
+                        omx_err("OMX_ErrorInsufficientResources, Line:%d", __LINE__);
                         goto EXIT;
                     }
                 } else if (pRockchipComponent->pRockchipPort[i].portWayType == WAY2_PORT) {
                     ret = Rockchip_OSAL_MutexCreate(&pRockchipComponent->pRockchipPort[i].way.port2WayDataBuffer.inputDataBuffer.bufferMutex);
                     if (ret != OMX_ErrorNone) {
                         ret = OMX_ErrorInsufficientResources;
-                        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorInsufficientResources, Line:%d", __LINE__);
+                        omx_err("OMX_ErrorInsufficientResources, Line:%d", __LINE__);
                         goto EXIT;
                     }
                     ret = Rockchip_OSAL_MutexCreate(&pRockchipComponent->pRockchipPort[i].way.port2WayDataBuffer.outputDataBuffer.bufferMutex);
                     if (ret != OMX_ErrorNone) {
                         ret = OMX_ErrorInsufficientResources;
-                        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorInsufficientResources, Line:%d", __LINE__);
+                        omx_err("OMX_ErrorInsufficientResources, Line:%d", __LINE__);
                         goto EXIT;
                     }
                 }
@@ -414,7 +414,7 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentStateSet(OMX_COMPONENTTYPE *pOMXComponent, O
                     goto EXIT;
                 }
             }
-            Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "rockchip_BufferProcessCreate");
+            omx_trace("rockchip_BufferProcessCreate");
 
             ret = pRockchipComponent->rockchip_BufferProcessCreate(pOMXComponent);
             if (ret != OMX_ErrorNone) {
@@ -456,7 +456,7 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentStateSet(OMX_COMPONENTTYPE *pOMXComponent, O
                 goto EXIT;
             }
 
-            Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, " OMX_StateIdle");
+            omx_trace(" OMX_StateIdle");
             pRockchipComponent->currentState = OMX_StateIdle;
             break;
         case OMX_StateExecuting:
@@ -581,7 +581,7 @@ EXIT:
                                                          destState, NULL);
         }
     } else {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "%s:%d", __FUNCTION__, __LINE__);
+        omx_err("ERROR");
         if (pRockchipComponent->pCallbacks != NULL) {
             pRockchipComponent->pCallbacks->EventHandler((OMX_HANDLETYPE)pOMXComponent,
                                                          pRockchipComponent->callbackData,
@@ -668,13 +668,13 @@ static OMX_ERRORTYPE Rockchip_StateSet(ROCKCHIP_OMX_BASECOMPONENT *pRockchipComp
         for (i = 0; i < pRockchipComponent->portParam.nPorts; i++) {
             pRockchipComponent->pRockchipPort[i].portState = OMX_StateIdle;
         }
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "to OMX_StateIdle");
+        omx_trace("to OMX_StateIdle");
     } else if ((destState == OMX_StateLoaded) && (pRockchipComponent->currentState == OMX_StateIdle)) {
         pRockchipComponent->transientState = ROCKCHIP_OMX_TransStateIdleToLoaded;
         for (i = 0; i < pRockchipComponent->portParam.nPorts; i++) {
             pRockchipComponent->pRockchipPort[i].portState = OMX_StateLoaded;
         }
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "to OMX_StateLoaded");
+        omx_trace("to OMX_StateLoaded");
     } else if ((destState == OMX_StateIdle) && (pRockchipComponent->currentState == OMX_StateExecuting)) {
         ROCKCHIP_OMX_BASEPORT *pRockchipPort = NULL;
 
@@ -693,10 +693,10 @@ static OMX_ERRORTYPE Rockchip_StateSet(ROCKCHIP_OMX_BASECOMPONENT *pRockchipComp
         }
 
         pRockchipComponent->transientState = ROCKCHIP_OMX_TransStateExecutingToIdle;
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "to OMX_StateIdle");
+        omx_trace("to OMX_StateIdle");
     } else if ((destState == OMX_StateExecuting) && (pRockchipComponent->currentState == OMX_StateIdle)) {
         pRockchipComponent->transientState = ROCKCHIP_OMX_TransStateIdleToExecuting;
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "to OMX_StateExecuting");
+        omx_trace("to OMX_StateExecuting");
     } else if (destState == OMX_StateInvalid) {
         for (i = 0; i < pRockchipComponent->portParam.nPorts; i++) {
             pRockchipComponent->pRockchipPort[i].portState = OMX_StateInvalid;
@@ -912,30 +912,30 @@ OMX_ERRORTYPE Rockchip_OMX_SendCommand(
 
     switch (Cmd) {
     case OMX_CommandStateSet :
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Command: OMX_CommandStateSet");
+        omx_trace("Command: OMX_CommandStateSet");
         Rockchip_StateSet(pRockchipComponent, nParam);
         break;
     case OMX_CommandFlush :
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Command: OMX_CommandFlush");
+        omx_trace("Command: OMX_CommandFlush");
         pRockchipComponent->nRkFlags |= RK_VPU_NEED_FLUSH_ON_SEEK;
         ret = Rockchip_SetPortFlush(pRockchipComponent, nParam);
         if (ret != OMX_ErrorNone)
             goto EXIT;
         break;
     case OMX_CommandPortDisable :
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Command: OMX_CommandPortDisable");
+        omx_trace("Command: OMX_CommandPortDisable");
         ret = Rockchip_SetPortDisable(pRockchipComponent, nParam);
         if (ret != OMX_ErrorNone)
             goto EXIT;
         break;
     case OMX_CommandPortEnable :
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Command: OMX_CommandPortEnable");
+        omx_trace("Command: OMX_CommandPortEnable");
         ret = Rockchip_SetPortEnable(pRockchipComponent, nParam);
         if (ret != OMX_ErrorNone)
             goto EXIT;
         break;
     case OMX_CommandMarkBuffer :
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "Command: OMX_CommandMarkBuffer");
+        omx_trace("Command: OMX_CommandMarkBuffer");
         ret = Rockchip_SetMarkBuffer(pRockchipComponent, nParam);
         if (ret != OMX_ErrorNone)
             goto EXIT;
@@ -1438,38 +1438,38 @@ OMX_ERRORTYPE Rockchip_OMX_SetCallbacks (
     if (hComponent == NULL) {
         ret = OMX_ErrorBadParameter;
 
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorBadParameter :%d", __LINE__);
+        omx_err("OMX_ErrorBadParameter :%d", __LINE__);
         goto EXIT;
     }
     pOMXComponent = (OMX_COMPONENTTYPE *)hComponent;
     ret = Rockchip_OMX_Check_SizeVersion(pOMXComponent, sizeof(OMX_COMPONENTTYPE));
     if (ret != OMX_ErrorNone) {
 
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorNone :%d", __LINE__);
+        omx_err("OMX_ErrorNone :%d", __LINE__);
         goto EXIT;
     }
 
     if (pOMXComponent->pComponentPrivate == NULL) {
 
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorBadParameter :%d", __LINE__);
+        omx_err("OMX_ErrorBadParameter :%d", __LINE__);
         ret = OMX_ErrorBadParameter;
         goto EXIT;
     }
     pRockchipComponent = (ROCKCHIP_OMX_BASECOMPONENT *)pOMXComponent->pComponentPrivate;
 
     if (pCallbacks == NULL) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorBadParameter :%d", __LINE__);
+        omx_err("OMX_ErrorBadParameter :%d", __LINE__);
         ret = OMX_ErrorBadParameter;
         goto EXIT;
     }
     if (pRockchipComponent->currentState == OMX_StateInvalid) {
 
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorInvalidState :%d", __LINE__);
+        omx_err("OMX_ErrorInvalidState :%d", __LINE__);
         ret = OMX_ErrorInvalidState;
         goto EXIT;
     }
     if (pRockchipComponent->currentState != OMX_StateLoaded) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_StateLoaded :%d", __LINE__);
+        omx_err("OMX_StateLoaded :%d", __LINE__);
         ret = OMX_ErrorIncorrectStateOperation;
         goto EXIT;
     }
@@ -1511,14 +1511,14 @@ OMX_ERRORTYPE Rockchip_OMX_BaseComponent_Constructor(
 
     if (hComponent == NULL) {
         ret = OMX_ErrorBadParameter;
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorBadParameter, Line:%d", __LINE__);
+        omx_err("OMX_ErrorBadParameter, Line:%d", __LINE__);
         goto EXIT;
     }
     pOMXComponent = (OMX_COMPONENTTYPE *)hComponent;
     pRockchipComponent = Rockchip_OSAL_Malloc(sizeof(ROCKCHIP_OMX_BASECOMPONENT));
     if (pRockchipComponent == NULL) {
         ret = OMX_ErrorInsufficientResources;
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorInsufficientResources, Line:%d", __LINE__);
+        omx_err("OMX_ErrorInsufficientResources, Line:%d", __LINE__);
         goto EXIT;
     }
     Rockchip_OSAL_Memset(pRockchipComponent, 0, sizeof(ROCKCHIP_OMX_BASECOMPONENT));
@@ -1528,19 +1528,19 @@ OMX_ERRORTYPE Rockchip_OMX_BaseComponent_Constructor(
     ret = Rockchip_OSAL_SemaphoreCreate(&pRockchipComponent->msgSemaphoreHandle);
     if (ret != OMX_ErrorNone) {
         ret = OMX_ErrorInsufficientResources;
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorInsufficientResources, Line:%d", __LINE__);
+        omx_err("OMX_ErrorInsufficientResources, Line:%d", __LINE__);
         goto EXIT;
     }
     ret = Rockchip_OSAL_MutexCreate(&pRockchipComponent->compMutex);
     if (ret != OMX_ErrorNone) {
         ret = OMX_ErrorInsufficientResources;
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorInsufficientResources, Line:%d", __LINE__);
+        omx_err("OMX_ErrorInsufficientResources, Line:%d", __LINE__);
         goto EXIT;
     }
     ret = Rockchip_OSAL_SignalCreate(&pRockchipComponent->abendStateEvent);
     if (ret != OMX_ErrorNone) {
         ret = OMX_ErrorInsufficientResources;
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorInsufficientResources, Line:%d", __LINE__);
+        omx_err("OMX_ErrorInsufficientResources, Line:%d", __LINE__);
         goto EXIT;
     }
 
@@ -1549,7 +1549,7 @@ OMX_ERRORTYPE Rockchip_OMX_BaseComponent_Constructor(
     ret = Rockchip_OSAL_ThreadCreate(&pRockchipComponent->hMessageHandler, Rockchip_OMX_MessageHandlerThread, pOMXComponent);
     if (ret != OMX_ErrorNone) {
         ret = OMX_ErrorInsufficientResources;
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "OMX_ErrorInsufficientResources, Line:%d", __LINE__);
+        omx_err("OMX_ErrorInsufficientResources, Line:%d", __LINE__);
         goto EXIT;
     }
 

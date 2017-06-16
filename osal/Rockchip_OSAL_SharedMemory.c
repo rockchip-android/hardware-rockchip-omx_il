@@ -74,7 +74,7 @@ static int ion_ioctl(int fd, int req, void *arg)
 {
     int ret = ioctl(fd, req, arg);
     if (ret < 0) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "ion_ioctl %x failed with code %d: %s\n", req,
+        omx_err("ion_ioctl %x failed with code %d: %s\n", req,
                           ret, strerror(errno));
         return -errno;
     }
@@ -128,12 +128,12 @@ static int ion_map(int fd, ion_user_handle_t handle, size_t length, int prot,
         return ret;
     *map_fd = data.fd;
     if (*map_fd < 0) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "map ioctl returned negative fd\n");
+        omx_err("map ioctl returned negative fd\n");
         return -EINVAL;
     }
     *ptr = mmap(NULL, length, prot, flags, *map_fd, offset);
     if (*ptr == MAP_FAILED) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "mmap failed: %s\n", strerror(errno));
+        omx_err("mmap failed: %s\n", strerror(errno));
         return -errno;
     }
     return ret;
@@ -169,7 +169,7 @@ OMX_HANDLETYPE Rockchip_OSAL_SharedMemory_Open()
     IONClient = open("/dev/ion", O_RDWR);
 
     if (IONClient <= 0) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "ion_client_create Error: %d", IONClient);
+        omx_err("ion_client_create Error: %d", IONClient);
         Rockchip_OSAL_Free((void *)pHandle);
         pHandle = NULL;
         goto EXIT;
@@ -201,7 +201,7 @@ void Rockchip_OSAL_SharedMemory_Close(OMX_HANDLETYPE handle)
         pCurrentElement = pCurrentElement->pNextMemory;
 
         if (munmap(pDeleteElement->mapAddr, pDeleteElement->allocSize))
-            Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "ion_unmap fail");
+            omx_err("ion_unmap fail");
 
         pDeleteElement->mapAddr = NULL;
         pDeleteElement->allocSize = 0;
@@ -213,7 +213,7 @@ void Rockchip_OSAL_SharedMemory_Close(OMX_HANDLETYPE handle)
         Rockchip_OSAL_Free(pDeleteElement);
 
         mem_cnt--;
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "SharedMemory free count: %d", mem_cnt);
+        omx_trace("SharedMemory free count: %d", mem_cnt);
     }
 
     pHandle->pAllocMemory = pSMList = NULL;
@@ -239,7 +239,7 @@ static int ion_custom_op(int ion_client, int op, void *op_data)
     data.arg = (unsigned long)op_data;
     err = ioctl(ion_client, ION_IOC_CUSTOM, &data);
     if (err < 0) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "ION_IOC_CUSTOM (%d) failed with error - %s", op, strerror(errno));
+        omx_err("ION_IOC_CUSTOM (%d) failed with error - %s", op, strerror(errno));
         return err;
     }
     return err;
@@ -283,7 +283,7 @@ OMX_PTR Rockchip_OSAL_SharedMemory_Alloc(OMX_HANDLETYPE handle, OMX_U32 size, ME
     err = ion_alloc((int)pHandle->fd, size, 4096, mask, flag, (ion_user_handle_t *)&ion_hdl);
 
     if (err < 0) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "ion_alloc Error: %d", ion_hdl);
+        omx_err("ion_alloc Error: %d", ion_hdl);
         Rockchip_OSAL_Free((OMX_PTR)pElement);
         goto EXIT;
     }
@@ -292,7 +292,7 @@ OMX_PTR Rockchip_OSAL_SharedMemory_Alloc(OMX_HANDLETYPE handle, OMX_U32 size, ME
                   MAP_SHARED, (off_t)0, (unsigned char**)&pBuffer, &map_fd);
 
     if (err) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "ion_map Error");
+        omx_err("ion_map Error");
         ion_free(pHandle->fd, ion_hdl);
         Rockchip_OSAL_Free((OMX_PTR)pElement);
         pBuffer = NULL;
@@ -318,7 +318,7 @@ OMX_PTR Rockchip_OSAL_SharedMemory_Alloc(OMX_HANDLETYPE handle, OMX_U32 size, ME
     Rockchip_OSAL_MutexUnlock(pHandle->hSMMutex);
 
     mem_cnt++;
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "SharedMemory alloc count: %d", mem_cnt);
+    omx_trace("SharedMemory alloc count: %d", mem_cnt);
 
 EXIT:
     return pBuffer;
@@ -356,14 +356,14 @@ void Rockchip_OSAL_SharedMemory_Free(OMX_HANDLETYPE handle, OMX_PTR pBuffer)
             pCurrentElement->pNextMemory = pDeleteElement->pNextMemory;
         } else {
             Rockchip_OSAL_MutexUnlock(pHandle->hSMMutex);
-            Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "Can not find SharedMemory");
+            omx_err("Can not find SharedMemory");
             goto EXIT;
         }
     }
     Rockchip_OSAL_MutexUnlock(pHandle->hSMMutex);
 
     if (munmap(pDeleteElement->mapAddr, pDeleteElement->allocSize)) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "ion_unmap fail");
+        omx_err("ion_unmap fail");
         goto EXIT;
     }
     pDeleteElement->mapAddr = NULL;
@@ -376,7 +376,7 @@ void Rockchip_OSAL_SharedMemory_Free(OMX_HANDLETYPE handle, OMX_PTR pBuffer)
     Rockchip_OSAL_Free(pDeleteElement);
 
     mem_cnt--;
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "SharedMemory free count: %d", mem_cnt);
+    omx_trace("SharedMemory free count: %d", mem_cnt);
 
 EXIT:
     return;
@@ -399,7 +399,7 @@ OMX_PTR Rockchip_OSAL_SharedMemory_Map(OMX_HANDLETYPE handle, OMX_U32 size, int 
     Rockchip_OSAL_Memset(pElement, 0, sizeof(ROCKCHIP_SHAREDMEM_LIST));
 
     if (ion_hdl == -1) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "ion_alloc Error: %d", ion_hdl);
+        omx_err("ion_alloc Error: %d", ion_hdl);
         Rockchip_OSAL_Free((void*)pElement);
         goto EXIT;
     }
@@ -408,7 +408,7 @@ OMX_PTR Rockchip_OSAL_SharedMemory_Map(OMX_HANDLETYPE handle, OMX_U32 size, int 
                   MAP_SHARED, (off_t)0, (unsigned char**)&pBuffer, &map_fd);
 
     if (pBuffer == NULL) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "ion_map Error");
+        omx_err("ion_map Error");
         ion_free(pHandle->fd, (ion_user_handle_t)ion_hdl);
         Rockchip_OSAL_Free((void*)pElement);
         goto EXIT;
@@ -433,7 +433,7 @@ OMX_PTR Rockchip_OSAL_SharedMemory_Map(OMX_HANDLETYPE handle, OMX_U32 size, int 
     Rockchip_OSAL_MutexUnlock(pHandle->hSMMutex);
 
     mem_cnt++;
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "SharedMemory alloc count: %d", mem_cnt);
+    omx_trace("SharedMemory alloc count: %d", mem_cnt);
 
 EXIT:
     return pBuffer;
@@ -471,14 +471,14 @@ void Rockchip_OSAL_SharedMemory_Unmap(OMX_HANDLETYPE handle, int ionfd)
             pCurrentElement->pNextMemory = pDeleteElement->pNextMemory;
         } else {
             Rockchip_OSAL_MutexUnlock(pHandle->hSMMutex);
-            Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "Can not find SharedMemory");
+            omx_err("Can not find SharedMemory");
             goto EXIT;
         }
     }
     Rockchip_OSAL_MutexUnlock(pHandle->hSMMutex);
 
     if (munmap(pDeleteElement->mapAddr, pDeleteElement->allocSize)) {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "ion_unmap fail");
+        omx_err("ion_unmap fail");
         goto EXIT;
     }
     pDeleteElement->mapAddr = NULL;
@@ -488,7 +488,7 @@ void Rockchip_OSAL_SharedMemory_Unmap(OMX_HANDLETYPE handle, int ionfd)
     Rockchip_OSAL_Free(pDeleteElement);
 
     mem_cnt--;
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "SharedMemory free count: %d", mem_cnt);
+    omx_trace("SharedMemory free count: %d", mem_cnt);
 
 EXIT:
     return;
@@ -523,7 +523,7 @@ int Rockchip_OSAL_SharedMemory_VirtToION(OMX_HANDLETYPE handle, OMX_PTR pBuffer)
             pFindElement = pCurrentElement->pNextMemory;
         } else {
             Rockchip_OSAL_MutexUnlock(pHandle->hSMMutex);
-            Rockchip_OSAL_Log(ROCKCHIP_LOG_WARNING, "Can not find SharedMemory");
+            omx_warn("Can not find SharedMemory");
             goto EXIT;
         }
     }
@@ -563,7 +563,7 @@ OMX_PTR Rockchip_OSAL_SharedMemory_IONToVirt(OMX_HANDLETYPE handle, int ion_fd)
             pFindElement = pCurrentElement->pNextMemory;
         } else {
             Rockchip_OSAL_MutexUnlock(pHandle->hSMMutex);
-            Rockchip_OSAL_Log(ROCKCHIP_LOG_WARNING, "Can not find SharedMemory");
+            omx_warn("Can not find SharedMemory");
             goto EXIT;
         }
     }
@@ -580,7 +580,7 @@ static OMX_S32 check_used_heaps_type()
     if (!VPUClientGetIOMMUStatus()) {
         return ION_HEAP(ION_CMA_HEAP_ID);
     } else {
-        Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, "USE ION_SYSTEM_HEAP");
+        omx_trace("USE ION_SYSTEM_HEAP");
         return ION_HEAP(ION_VMALLOC_HEAP_ID);
     }
 
@@ -599,7 +599,7 @@ OMX_S32 Rockchip_OSAL_SharedMemory_getPhyAddress(OMX_HANDLETYPE handle, int shar
     if (check_used_heaps_type() == ION_HEAP(ION_CMA_HEAP_ID)) {
         err = ion_import(pHandle->fd, share_fd, &ion_handle);
         if (err) {
-            Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "ion import failed, share fd %d\n", share_fd);
+            omx_err("ion import failed, share fd %d\n", share_fd);
             return err;
         }
         phys_data.handle = ion_handle;

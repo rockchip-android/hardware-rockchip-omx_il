@@ -70,12 +70,18 @@ typedef enum _LOG_LEVEL
 #endif
 
 #ifdef ROCKCHIP_TRACE
-#define FunctionIn() _Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, ROCKCHIP_LOG_TAG, "%s In , Line: %d", __FUNCTION__, __LINE__)
-#define FunctionOut() _Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, ROCKCHIP_LOG_TAG, "%s Out , Line: %d", __FUNCTION__, __LINE__)
+#define FunctionIn() omx_trace("IN")
+#define FunctionOut() omx_trace("OUT")
 #else
 #define FunctionIn() ((void *)0)
 #define FunctionOut() ((void *)0)
 #endif
+
+#define omx_info(format, ...)        _Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, ROCKCHIP_LOG_TAG, "%s(%d): " format "\n",__FUNCTION__, __LINE__, ##__VA_ARGS__)
+#define omx_trace(format, ...)       _Rockchip_OSAL_Log(ROCKCHIP_LOG_TRACE, ROCKCHIP_LOG_TAG, "%s(%d): " format "\n",__FUNCTION__, __LINE__, ##__VA_ARGS__)
+#define omx_err(format, ...)         _Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, ROCKCHIP_LOG_TAG, "%s(%d): " format "\n",__FUNCTION__, __LINE__, ##__VA_ARGS__)
+#define omx_warn(format, ...)        _Rockchip_OSAL_Log(ROCKCHIP_LOG_WARNING, ROCKCHIP_LOG_TAG, "%s(%d): " format "\n",__FUNCTION__, __LINE__, ##__VA_ARGS__)
+#define omx_dbg(format, ...)         _Rockchip_OSAL_Log(ROCKCHIP_LOG_DEBUG, ROCKCHIP_LOG_TAG, "%s(%d): " format "\n",__FUNCTION__, __LINE__, ##__VA_ARGS__)
 
 extern void _Rockchip_OSAL_Log(ROCKCHIP_LOG_LEVEL logLevel, const char *tag, const char *msg, ...);
 
