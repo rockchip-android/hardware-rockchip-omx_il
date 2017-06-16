@@ -509,6 +509,7 @@ void rga_nv12_copy(RockchipVideoPlane *plane, VPUMemLinear_t *vpumem, uint32_t W
 
 #endif
 }
+
 void rga_rgb_copy(RockchipVideoPlane *plane, VPUMemLinear_t *vpumem, uint32_t Width, uint32_t Height, void* rga_ctx)
 {
 #ifndef USE_DRM

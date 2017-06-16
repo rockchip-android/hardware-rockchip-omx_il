@@ -206,7 +206,7 @@ OMX_ERRORTYPE Rkvpu_OMX_CheckIsNeedFastmode(
         pVideoDec->bFastMode = OMX_TRUE;
         int fast_mode = 1;
         p_vpu_ctx->control(p_vpu_ctx, VPU_API_USE_FAST_MODE, &fast_mode);
-        omx_trace("used fast mode, h265decoder, width = %d, height = %d",
+        omx_info("used fast mode, h265decoder, width = %d, height = %d",
                                               pInputPort->portDefinition.format.video.nFrameWidth,
                                               pInputPort->portDefinition.format.video.nFrameHeight);
     }

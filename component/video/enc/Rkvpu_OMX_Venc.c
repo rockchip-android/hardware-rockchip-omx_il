@@ -46,6 +46,8 @@
 #include "hardware/rga.h"
 #include "vpu_type.h"
 #include "gralloc_priv_omx.h"
+#include <cutils/properties.h>
+
 
 #ifdef USE_ANB
 #include "Rockchip_OSAL_Android.h"
@@ -481,11 +483,11 @@ OMX_ERRORTYPE Rkvpu_ProcessStoreMetaData(OMX_COMPONENTTYPE *pOMXComponent, OMX_B
             VPUMemClean(pVideoEnc->enc_vpumem);
             *aPhy_address = pVideoEnc->enc_vpumem->phy_addr;
             *len = Width * Height * 3 / 2;
-#ifdef WRITE_FILE
-            VPUMemInvalidate(pVideoEnc->enc_vpumem);
-            fwrite(pVideoEnc->enc_vpumem->vir_addr, 1, Width * Height * 3 / 2, pVideoEnc->fp_h264);
-            fflush(pVideoEnc->fp_h264);
-#endif
+            if (pVideoEnc->fp_enc_in) {
+                VPUMemInvalidate(pVideoEnc->enc_vpumem);
+                fwrite(pVideoEnc->enc_vpumem->vir_addr, 1, Width * Height * 3 / 2, pVideoEnc->fp_enc_in);
+                fflush(pVideoEnc->fp_enc_in);
+            }
         } else if (pVideoEnc->bPixel_format == HAL_PIXEL_FORMAT_YCrCb_NV12) {
             *len = Rkvpu_N12_Process(pOMXComponent, &vplanes, aPhy_address);
         } else if (pVideoEnc->bPixel_format == HAL_PIXEL_FORMAT_YCbCr_420_888) {
@@ -498,10 +500,10 @@ OMX_ERRORTYPE Rkvpu_ProcessStoreMetaData(OMX_COMPONENTTYPE *pOMXComponent, OMX_B
             if (Width != vplanes.stride) {
                 rga_nv12_copy(&vplanes, pVideoEnc->enc_vpumem, Width, Height, pVideoEnc->rga_ctx);
                 *aPhy_address = pVideoEnc->enc_vpumem->phy_addr;
-#ifdef WRITE_FILE
-                fwrite(pVideoEnc->enc_vpumem->vir_addr, 1, Width * Height * 3 / 2, pVideoEnc->fp_rgb);
-                fflush(pVideoEnc->fp_rgb);
-#endif
+                if (pVideoEnc->fp_enc_in) {
+                    fwrite(pVideoEnc->enc_vpumem->vir_addr, 1, Width * Height * 3 / 2, pVideoEnc->fp_enc_in);
+                    fflush(pVideoEnc->fp_enc_in);
+                }
             } else {
                 Rockchip_OSAL_SharedMemory_getPhyAddress(pVideoEnc->hSharedMemory, vplanes.fd, aPhy_address);
             }
@@ -692,10 +694,11 @@ OMX_BOOL Rkvpu_Post_OutputStream(OMX_COMPONENTTYPE *pOMXComponent)
                 omx_info("set bSpsPpsLen %d", pVideoEnc->bSpsPpsLen);
                 pVideoEnc->bSpsPpsHeaderFlag = OMX_TRUE;
                 ret = OMX_TRUE;
-#if 0 //def WRITE_FILE
-                fwrite(aOut_buf, 1, pVideoEnc->bSpsPpsLen, pVideoEnc->fp_h264);
-                fflush(pVideoEnc->fp_h264);
-#endif
+                if (pVideoEnc->fp_enc_out != NULL) {
+                    fwrite(aOut_buf, 1, pVideoEnc->bSpsPpsLen, pVideoEnc->fp_enc_out);
+                    fflush(pVideoEnc->fp_enc_out);
+                }
+
                 Rkvpu_OutputBufferReturn(pOMXComponent, outputUseBuffer);
                 goto EXIT;
             }
@@ -747,14 +750,14 @@ OMX_BOOL Rkvpu_Post_OutputStream(OMX_COMPONENTTYPE *pOMXComponent)
                     outputUseBuffer->usedDataLen += 4;
                     outputUseBuffer->usedDataLen += pOutput.size;
                 }
-#if 0 //def WRITE_FILE
-                fwrite(aOut_buf, 1, outputUseBuffer->remainDataLen , pVideoEnc->fp_h264);
-                fflush(pVideoEnc->fp_h264);
-#endif
             } else {
                 Rockchip_OSAL_Memcpy(aOut_buf, pOutput.data, pOutput.size);
                 outputUseBuffer->remainDataLen = pOutput.size;
                 outputUseBuffer->usedDataLen = pOutput.size;
+            }
+            if (pVideoEnc->fp_enc_out != NULL) {
+                fwrite(aOut_buf, 1, outputUseBuffer->remainDataLen , pVideoEnc->fp_enc_out);
+                fflush(pVideoEnc->fp_enc_out);
             }
 
             outputUseBuffer->timeStamp = pOutput.timeUs;
@@ -1173,6 +1176,34 @@ OMX_ERRORTYPE omx_open_vpuenc_context(RKVPU_OMX_VIDEOENC_COMPONENT *pVideoEnc)
     return OMX_ErrorNone;
 }
 
+OMX_ERRORTYPE Rkvpu_Enc_DebugSwitchfromPropget(
+    ROCKCHIP_OMX_BASECOMPONENT *pRockchipComponent)
+{
+    OMX_ERRORTYPE                  ret               = OMX_ErrorNone;
+    RKVPU_OMX_VIDEOENC_COMPONENT  *pVideoEnc         = (RKVPU_OMX_VIDEOENC_COMPONENT *)pRockchipComponent->hComponentHandle;
+    char                           value[PROPERTY_VALUE_MAX];
+    memset(value, 0, sizeof(value));
+    if (property_get("record_omx_enc_out", value, "0") && (atoi(value) > 0)) {
+        omx_info("Start recording stream to /data/video/enc_out.bin");
+        if (pVideoEnc->fp_enc_out != NULL) {
+            fclose(pVideoEnc->fp_enc_out);
+        }
+        pVideoEnc->fp_enc_out = fopen("data/video/enc_out.bin", "wb");
+    }
+
+    memset(value, 0, sizeof(value));
+    if (property_get("record_omx_enc_in", value, "0") && (atoi(value) > 0)) {
+        omx_info("Start recording stream to /data/video/enc_in.bin");
+        if (pVideoEnc->fp_enc_in != NULL) {
+            fclose(pVideoEnc->fp_enc_in);
+        }
+        pVideoEnc->fp_enc_in = fopen("data/video/enc_in.bin", "wb");
+    }
+
+    return ret;
+}
+
+
 OMX_ERRORTYPE Rkvpu_Enc_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
 {
     OMX_ERRORTYPE                  ret               = OMX_ErrorNone;
@@ -1183,11 +1214,13 @@ OMX_ERRORTYPE Rkvpu_Enc_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
     ROCKCHIP_OMX_BASEPORT           *pRockchipOutPort  = &pRockchipComponent->pRockchipPort[OUTPUT_PORT_INDEX];
     VpuCodecContext_t               *p_vpu_ctx           = NULL;
     EncParameter_t *EncParam = NULL;
-    omx_info("xlmxlmxlm %d",1);
     RK_U32 new_width = 0, new_height = 0;
     if (omx_open_vpuenc_context(pVideoEnc) != OMX_ErrorNone) {
         ret = OMX_ErrorInsufficientResources;
         goto EXIT;
+    }
+    if (pRockchipComponent->rkversion != NULL) {
+        omx_err("omx decoder info : %s",pRockchipComponent->rkversion);
     }
     if (pVideoEnc->bIsNewVpu == OMX_TRUE) {
         p_vpu_ctx = (VpuCodecContext_t *)Rockchip_OSAL_Malloc(sizeof(VpuCodecContext_t));
@@ -1318,10 +1351,8 @@ OMX_ERRORTYPE Rkvpu_Enc_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
 
     pVideoEnc->bRgb2yuvFlag = OMX_FALSE;
     pVideoEnc->bPixel_format = -1;
-#ifdef WRITE_FILE
-    pVideoEnc->fp_rgb = fopen("data/enc_in.rgb", "wb");
-    pVideoEnc->fp_h264 = fopen("data/enc_out.h264", "wb");
-#endif
+
+    Rkvpu_Enc_DebugSwitchfromPropget(pRockchipComponent);
 
     pVideoEnc->vpu_ctx = p_vpu_ctx;
 
@@ -1718,6 +1749,9 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentDeInit(OMX_HANDLETYPE hComponent)
     pRockchipComponent = (ROCKCHIP_OMX_BASECOMPONENT *)pOMXComponent->pComponentPrivate;
 
     pVideoEnc = (RKVPU_OMX_VIDEOENC_COMPONENT *)pRockchipComponent->hComponentHandle;
+    if (pVideoEnc->fp_enc_out != NULL) {
+        fclose(pVideoEnc->fp_enc_out);
+    }
     Rockchip_OSAL_MutexTerminate(pVideoEnc->bScale_Mutex);
     Rockchip_OSAL_MutexTerminate(pVideoEnc->bRecofig_Mutex);
     if (pVideoEnc->hSharedMemory != NULL) {

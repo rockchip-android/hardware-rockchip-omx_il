@@ -115,10 +115,10 @@ typedef struct _RKVPU_OMX_VIDEOENC_COMPONENT {
     OMX_BOOL bRgb2yuvFlag;
 
     void *rkapi_hdl;
-#ifdef WRITE_FILE
-    FILE *fp_rgb;
-    FILE *fp_h264;
-#endif
+    //for debug
+    FILE *fp_enc_out;
+    FILE *fp_enc_in;
+
     //add by xlm for use mpp or vpuapi
     OMX_BOOL bIsUseMpp;
     OMX_BOOL bIsNewVpu;
