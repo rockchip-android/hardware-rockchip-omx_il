@@ -127,6 +127,18 @@ static const CodecProfileLevel kProfileLevels[] = {
     { OMX_VIDEO_AVCProfileHigh, OMX_VIDEO_AVCLevel51},
 };
 
+static const CodecProfileLevel kH265ProfileLevels[] = {
+    { OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCMainTierLevel1  },
+    { OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCMainTierLevel2  },
+    { OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCMainTierLevel21 },
+    { OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCMainTierLevel3  },
+    { OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCMainTierLevel31 },
+    { OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCMainTierLevel4  },
+    { OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCMainTierLevel41 },
+    { OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCMainTierLevel5  },
+    { OMX_VIDEO_HEVCProfileMain, OMX_VIDEO_HEVCMainTierLevel51 },
+};
+
 OMX_ERRORTYPE Rkvpu_OMX_UseBuffer(
     OMX_IN OMX_HANDLETYPE            hComponent,
     OMX_INOUT OMX_BUFFERHEADERTYPE **ppBufferHdr,
@@ -1212,6 +1224,15 @@ OMX_ERRORTYPE Rkvpu_OMX_GetParameter(
             }
             profileLevel->eProfile = kProfileLevels[index].mProfile;
             profileLevel->eLevel = kProfileLevels[index].mLevel;
+        } else if (pVideoEnc->codecId == OMX_VIDEO_CodingHEVC) {
+            nProfileLevels =
+                sizeof(kH265ProfileLevels) / sizeof(kH265ProfileLevels[0]);
+            if (index >= nProfileLevels) {
+                ret = OMX_ErrorNoMore;
+                goto EXIT;
+            }
+            profileLevel->eProfile = kH265ProfileLevels[index].mProfile;
+            profileLevel->eLevel = kH265ProfileLevels[index].mLevel;
         } else {
             ret = OMX_ErrorNoMore;
             goto EXIT;
@@ -1304,6 +1325,7 @@ OMX_ERRORTYPE Rkvpu_OMX_SetParameter(
             portDefinition->format.video.eCompressionFormat = portFormat->eCompressionFormat;
             portDefinition->format.video.xFramerate         = portFormat->xFramerate;
         }
+        ret = OMX_ErrorNone;
     }
     break;
     case OMX_IndexParamVideoBitrate: {

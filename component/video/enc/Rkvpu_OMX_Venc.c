@@ -345,7 +345,6 @@ OMX_ERRORTYPE Rkvpu_Enc_ReConfig(OMX_COMPONENTTYPE *pOMXComponent, OMX_U32 new_w
     }
     EncParam->rc_mode = 1;
     p_vpu_ctx->control(p_vpu_ctx, VPU_API_ENC_SETCFG, EncParam);
-    Rockchip_OSAL_Log(ROCKCHIP_LOG_DEBUG, "set as nv12 format");
     p_vpu_ctx->control(p_vpu_ctx, VPU_API_ENC_SETFORMAT, (void *)&encType);
     pVideoEnc->vpu_ctx = p_vpu_ctx;
     pVideoEnc->bPrependSpsPpsToIdr = OMX_TRUE;
@@ -1390,6 +1389,25 @@ OMX_ERRORTYPE Rkvpu_Enc_GetEncParams(OMX_COMPONENTTYPE *pOMXComponent,EncParamet
                 (*encParams)->rc_mode = Video_RC_Mode_VBR;
             break;
         }
+        switch (pRockchipInputPort->portDefinition.format.video.eColorFormat) {
+            case OMX_COLOR_FormatAndroidOpaque: {
+                (*encParams)->rc_mode = Video_RC_Mode_VBR;
+                (*encParams)->format = VPU_H264ENC_RGB888;
+            }
+            break;
+            case OMX_COLOR_FormatYUV420Planar: {
+                (*encParams)->format = VPU_H264ENC_YUV420_PLANAR;
+            }
+            break;
+            case OMX_COLOR_FormatYUV420SemiPlanar: {
+                (*encParams)->format = VPU_H264ENC_YUV420_SEMIPLANAR;
+            }
+            break;
+            default:
+            Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR,"inputPort colorformat is not support format = %d",
+                         pRockchipInputPort->portDefinition.format.video.eColorFormat);
+            break;
+        }
     }
 
     Rockchip_OSAL_Log(ROCKCHIP_LOG_INFO, "encode params init settings:\n"
@@ -1411,6 +1429,7 @@ OMX_ERRORTYPE Rkvpu_Enc_GetEncParams(OMX_COMPONENTTYPE *pOMXComponent,EncParamet
                                          (int)(*encParams)->format,
                                          (int)(*encParams)->enableCabac,
                                          (int)(*encParams)->cabacInitIdc,
+                                         (int)(*encParams)->intraPicRate,
                                          (int)(*encParams)->profileIdc,
                                          (int)(*encParams)->levelIdc,
                                          (int)(*encParams)->rc_mode);
