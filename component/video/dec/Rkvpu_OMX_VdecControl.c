@@ -1503,6 +1503,7 @@ OMX_ERRORTYPE Rkvpu_OMX_SetParameter(
         ROCKCHIP_OMX_BASEPORT             *pRockchipPort;
         OMX_U32 stride, strideheight, size;
         OMX_U32 realWidth, realHeight;
+        OMX_U32 supWidth = 0;
 
         if (portIndex >= pRockchipComponent->portParam.nPorts) {
             ret = OMX_ErrorBadPortIndex;
@@ -1536,8 +1537,14 @@ OMX_ERRORTYPE Rkvpu_OMX_SetParameter(
         strideheight = Get_Video_VerAlign(pVideoDec->codecId, realHeight);
 
         size = (stride * strideheight * 3) / 2;
-        omx_trace("decoder width %d support %d", stride, VPUCheckSupportWidth());
-        if (realWidth > VPUCheckSupportWidth()) {
+
+        supWidth = VPUCheckSupportWidth();
+        if (supWidth == 0) {
+            omx_warn("VPUCheckSupportWidth is failed , force max width to 4096.");
+            supWidth = 4096;
+        }
+        omx_trace("decoder width %d support %d", stride, supWidth);
+        if (realWidth > supWidth) {
             if (access("/dev/rkvdec", 06) == 0) {
                 if (pVideoDec->codecId == OMX_VIDEO_CodingHEVC ||
                     pVideoDec->codecId == OMX_VIDEO_CodingAVC ||
