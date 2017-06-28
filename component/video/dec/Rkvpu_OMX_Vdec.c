@@ -1093,6 +1093,13 @@ OMX_ERRORTYPE Rkvpu_Dec_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
 
     Rkvpu_OMX_DebugSwitchfromPropget(pRockchipComponent);
 
+    if (p_vpu_ctx->width > 1920 && p_vpu_ctx->height > 1080) {
+        //add for kodi
+        property_set("sys.gpu.frames_num_of_sectionKD", "4");
+        property_set("sys.gpu.frames_num_to_skip_KD", "3");
+        pVideoDec->b4K_flags = OMX_TRUE;
+    }
+
 #ifdef WRITR_FILE
     pVideoDec->fp_out = fopen("data/video/dec_out.yuv", "wb");
 #endif
@@ -1208,6 +1215,7 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentConstructor(OMX_HANDLETYPE hComponent, OMX_S
     pVideoDec->bPrintBufferPosition = OMX_FALSE;
     pVideoDec->bGtsTest = OMX_FALSE;
     pVideoDec->fp_in = NULL;
+    pVideoDec->b4K_flags = OMX_FALSE;
     pRockchipComponent->bMultiThreadProcess = OMX_TRUE;
     pRockchipComponent->codecType = HW_VIDEO_DEC_CODEC;
 
@@ -1428,6 +1436,12 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentDeInit(OMX_HANDLETYPE hComponent)
 //    Rockchip_OSAL_RefANB_Terminate(pVideoDec->hRefHandle);
     if (pVideoDec->fp_in != NULL) {
         fclose(pVideoDec->fp_in);
+    }
+    if (pVideoDec->b4K_flags == OMX_TRUE) {
+        //add for kodi
+        property_set("sys.gpu.frames_num_of_sectionKD", "0");
+        property_set("sys.gpu.frames_num_to_skip_KD", "0");
+        pVideoDec->b4K_flags = OMX_FALSE;
     }
 
     Rockchip_OSAL_Free(pVideoDec);
