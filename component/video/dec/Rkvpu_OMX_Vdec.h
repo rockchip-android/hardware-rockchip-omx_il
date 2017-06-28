@@ -120,6 +120,7 @@ typedef struct _RKVPU_OMX_VIDEODEC_COMPONENT {
     OMX_PTR  vpumem_handle;
     OMX_U32 maxCount; // when buffer in AL big than 8,if max timeout no consume we continue send one buffer to AL
     OMX_BOOL bOld_api;
+    OMX_BOOL b4K_flags;
     /* For vpu control */
     OMX_BOOL bFastMode;
     OMX_RK_EXT_COLORSPACE extColorSpace;
