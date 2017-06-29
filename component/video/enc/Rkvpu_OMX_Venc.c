@@ -368,7 +368,6 @@ OMX_U32 Rkvpu_N12_Process(OMX_COMPONENTTYPE *pOMXComponent, RockchipVideoPlane *
     OMX_U32 Height_in =  pOutPort->portDefinition.format.video.nFrameHeight;
     OMX_U32 Width = pOutPort->portDefinition.format.video.nFrameWidth;
     OMX_U32 Height =  pOutPort->portDefinition.format.video.nFrameHeight;
-
     if (pVideoEnc->params_extend.bEnableScaling || pVideoEnc->params_extend.bEnableCropping) {
         Rockchip_OSAL_MutexLock(pVideoEnc->bScale_Mutex);
         if (pVideoEnc->params_extend.bEnableScaling) {
@@ -475,17 +474,31 @@ OMX_ERRORTYPE Rkvpu_ProcessStoreMetaData(OMX_COMPONENTTYPE *pOMXComponent, OMX_B
 
         if (pVideoEnc->bRgb2yuvFlag == OMX_TRUE) {
             VPUMemLinear_t tmp_vpumem;
+            int new_width = 0;
+            int new_height = 0;
+            if (pVideoEnc->params_extend.bEnableScaling) {
+                new_width = pVideoEnc->params_extend.ui16ScaledWidth;
+                new_height = pVideoEnc->params_extend.ui16ScaledHeight;
+                if (new_width != pVideoEnc->bCurrent_width ||
+                    new_height != pVideoEnc->bCurrent_height) {
+                    pVideoEnc->bCurrent_width  =  new_width;
+                    pVideoEnc->bCurrent_height =  new_height;
+                    Rkvpu_Enc_ReConfig(pOMXComponent, new_width, new_height);					   
+                }
+            } else {
+                new_width = Width;
+                new_height = Height;
+            }
             uint8_t *Y = (uint8_t*)pVideoEnc->enc_vpumem->vir_addr;
             uint8_t *UV = Y + ((Width + 15) & (~15)) * Height;
             memset(&tmp_vpumem, 0, sizeof(VPUMemLinear_t));
-            rga_rgb2nv12(&vplanes, pVideoEnc->enc_vpumem, Width, Height, pVideoEnc->rga_ctx);
-
+            rga_rgb2nv12(&vplanes, pVideoEnc->enc_vpumem, Width, Height, new_width, new_height, pVideoEnc->rga_ctx);
             VPUMemClean(pVideoEnc->enc_vpumem);
             *aPhy_address = pVideoEnc->enc_vpumem->phy_addr;
-            *len = Width * Height * 3 / 2;
+            *len = new_width * new_width * 3 / 2;
             if (pVideoEnc->fp_enc_in) {
                 VPUMemInvalidate(pVideoEnc->enc_vpumem);
-                fwrite(pVideoEnc->enc_vpumem->vir_addr, 1, Width * Height * 3 / 2, pVideoEnc->fp_enc_in);
+                fwrite(pVideoEnc->enc_vpumem->vir_addr, 1, new_width * new_width * 3 / 2, pVideoEnc->fp_enc_in);
                 fflush(pVideoEnc->fp_enc_in);
             }
         } else if (pVideoEnc->bPixel_format == HAL_PIXEL_FORMAT_YCrCb_NV12) {
@@ -496,7 +509,6 @@ OMX_ERRORTYPE Rkvpu_ProcessStoreMetaData(OMX_COMPONENTTYPE *pOMXComponent, OMX_B
             pVideoEnc->vpu_ctx->control(pVideoEnc->vpu_ctx, VPU_API_ENC_SETFORMAT, (void *)&encType);
             EncParam.rc_mode = 1 << 16; //set intraDeltaqp as 4 to fix encoder cts issue
             pVideoEnc->vpu_ctx->control(pVideoEnc->vpu_ctx, VPU_API_ENC_SETCFG, (void*)&EncParam);
-
             if (Width != vplanes.stride) {
                 rga_nv12_copy(&vplanes, pVideoEnc->enc_vpumem, Width, Height, pVideoEnc->rga_ctx);
                 *aPhy_address = pVideoEnc->enc_vpumem->phy_addr;
