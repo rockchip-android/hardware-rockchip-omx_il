@@ -1748,7 +1748,6 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentDeInit(OMX_HANDLETYPE hComponent)
     }
     pRockchipComponent = (ROCKCHIP_OMX_BASECOMPONENT *)pOMXComponent->pComponentPrivate;
 
-    VPUMemClose();
     pVideoEnc = (RKVPU_OMX_VIDEOENC_COMPONENT *)pRockchipComponent->hComponentHandle;
     if (pVideoEnc->fp_enc_out != NULL) {
         fclose(pVideoEnc->fp_enc_out);
