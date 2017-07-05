@@ -1160,7 +1160,7 @@ OMX_ERRORTYPE ConvertOmxHevcLevel2HalHevcLevel(
 
 OMX_ERRORTYPE omx_open_vpuenc_context(RKVPU_OMX_VIDEOENC_COMPONENT *pVideoEnc)
 {
-    pVideoEnc->rkapi_hdl = dlopen("/system/lib/libvpu.so", RTLD_LAZY);
+    pVideoEnc->rkapi_hdl = dlopen("/system/lib/libvpu.so", RTLD_LAZY | RTLD_GLOBAL);
     if (pVideoEnc->rkapi_hdl == NULL) {
         return OMX_ErrorHardware;
     }
@@ -1169,7 +1169,7 @@ OMX_ERRORTYPE omx_open_vpuenc_context(RKVPU_OMX_VIDEOENC_COMPONENT *pVideoEnc)
         dlclose(pVideoEnc->rkapi_hdl);
         pVideoEnc->rkapi_hdl = NULL;
         omx_dbg("used old version lib");
-        pVideoEnc->rkapi_hdl = dlopen("/system/lib/librk_vpuapi.so", RTLD_LAZY);
+        pVideoEnc->rkapi_hdl = dlopen("/system/lib/librk_vpuapi.so", RTLD_LAZY | RTLD_GLOBAL);
         if (pVideoEnc->rkapi_hdl == NULL) {
             omx_err("dll open fail system/lib/librk_vpuapi.so");
             return OMX_ErrorHardware;
