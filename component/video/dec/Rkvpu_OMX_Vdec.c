@@ -39,6 +39,7 @@
 #include "Rockchip_OSAL_Android.h"
 #include "Rockchip_OSAL_RGA_Process.h"
 #include "vpu_mem_pool.h"
+#include "vpu_api_private_cmd.h"
 #include <fcntl.h>
 #include "vpu_mem.h"
 #include <dlfcn.h>
@@ -385,6 +386,10 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
                 Rockchip_OSAL_Log(ROCKCHIP_LOG_DEBUG, "use directly output mode for media");
                 RK_U32 flag = 1;
                 p_vpu_ctx->control(p_vpu_ctx, VPU_API_SET_IMMEDIATE_OUT, (void*)&flag);
+            }
+
+            if (p_vpu_ctx->videoCoding == OMX_RK_VIDEO_CodingHEVC) {
+                p_vpu_ctx->control(p_vpu_ctx,VPU_API_PRIVATE_HEVC_NEED_PARSE,NULL);
             }
 
             pVideoDec->bFirstFrame = OMX_FALSE;

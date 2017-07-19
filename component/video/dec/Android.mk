@@ -19,7 +19,8 @@ LOCAL_C_INCLUDES := $(ROCKCHIP_OMX_INC)/khronos \
 	$(ROCKCHIP_OMX_TOP)/core \
 	$(ROCKCHIP_OMX_COMPONENT)/common \
 	$(ROCKCHIP_OMX_COMPONENT)/video/dec \
-        $(TOP)/hardware/rockchip/librkvpu
+        $(TOP)/hardware/rockchip/librkvpu \
+	$(TOP)/hardware/rockchip/librkvpu/common/include
 
 LOCAL_STATIC_LIBRARIES := libRkOMX_OSAL \
 	  	libRkOMX_Basecomponent 
