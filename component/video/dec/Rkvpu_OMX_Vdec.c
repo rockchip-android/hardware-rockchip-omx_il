@@ -848,7 +848,7 @@ OMX_ERRORTYPE Rkvpu_OMX_OutputBufferProcess(OMX_HANDLETYPE hComponent)
 
             if (dstOutputUseBuffer->dataValid == OMX_TRUE) {
                 if (Rkvpu_Post_OutputFrame(pOMXComponent) != OMX_TRUE) {
-                    Rockchip_OSAL_SleepMillisec(8);
+                    Rockchip_OSAL_SleepMillisec(3);
                 }
             }
 
