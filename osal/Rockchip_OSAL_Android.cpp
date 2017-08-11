@@ -615,7 +615,7 @@ OMX_ERRORTYPE Rockchip_OSAL_SetANBParameter(
         if (pVideoDec->bStoreMetaData != OMX_TRUE) {
 
             pVideoDec->bIsANBEnabled = pANBParams->enable;
-            pRockchipPort->portDefinition.nBufferCountActual = 6;
+            pRockchipPort->portDefinition.nBufferCountActual = 16;
             pRockchipPort->portDefinition.format.video.eColorFormat = (OMX_COLOR_FORMATTYPE)HAL_PIXEL_FORMAT_YCrCb_NV12;
             omx_trace("OMX_IndexParamEnableAndroidBuffers set buffcount %d", pRockchipPort->portDefinition.nBufferCountActual);
             /*

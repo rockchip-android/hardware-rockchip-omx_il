@@ -329,6 +329,7 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
     OMX_S32 i = 0;
     OMX_S32 numInOmxAl = 0;
     OMX_S32 maxBufferNum = rockchipInputPort->portDefinition.nBufferCountActual;
+    OMX_S32 dec_ret = 0;
     FunctionIn();
 
     for (i = 0; i < maxBufferNum; i++) {
@@ -411,11 +412,6 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
         pkt.data =  inputUseBuffer->bufferHeader->pBuffer + inputUseBuffer->usedDataLen;
         pkt.size = inputUseBuffer->dataLen;
 
-        if (pVideoDec->fp_in != NULL) {
-            fwrite(pkt.data, 1, pkt.size, pVideoDec->fp_in);
-            fflush(pVideoDec->fp_in);
-        }
-
         if (pVideoDec->flags & RKVPU_OMX_VDEC_USE_DTS) {
             pkt.pts = VPU_API_NOPTS_VALUE;
             pkt.dts = inputUseBuffer->timeStamp;
@@ -426,9 +422,22 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
             omx_info("send eos");
             pkt.nFlags |= OMX_BUFFERFLAG_EOS;
         }
+        omx_info("pkt.size:%d, pkt.dts:%lld,pkt.pts:%lld,pkt.nFlags:%d",
+                          pkt.size, pkt.dts, pkt.pts, pkt.nFlags);
 
         omx_trace("decode_sendstream");
-        p_vpu_ctx->decode_sendstream(p_vpu_ctx, &pkt);
+        dec_ret = p_vpu_ctx->decode_sendstream(p_vpu_ctx, &pkt);
+        if (dec_ret < 0) {
+            omx_err("decode_sendstream failed , ret = %x",dec_ret);
+            /*
+            pRockchipComponent->pCallbacks->EventHandler((OMX_HANDLETYPE)pOMXComponent,
+                                                             pRockchipComponent->callbackData, OMX_EventError,
+                                                             INPUT_PORT_INDEX,
+                                                             OMX_IndexParamPortDefinition, NULL);
+            Rkvpu_InputBufferReturn(pOMXComponent, inputUseBuffer);
+            ret = OMX_TRUE;
+            goto EXIT;*/
+        }
         if (pkt.size != 0) {
             // omx_err("stream list full wait");
             goto EXIT;
@@ -439,8 +448,7 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
             controlFPS(isInput);
         }
 
-        omx_trace(",pkt.size:%d, pkt.dts:%lld,pkt.pts:%lld,pkt.nFlags:%d",
-                          pkt.size, pkt.dts, pkt.pts, pkt.nFlags);
+
         Rkvpu_InputBufferReturn(pOMXComponent, inputUseBuffer);
         if (pRockchipComponent->checkTimeStamp.needSetStartTimeStamp == OMX_TRUE) {
             pRockchipComponent->checkTimeStamp.needCheckStartTimeStamp = OMX_TRUE;
@@ -790,6 +798,11 @@ OMX_ERRORTYPE Rkvpu_OMX_InputBufferProcess(OMX_HANDLETYPE hComponent)
                     if (ret != OMX_ErrorNone) {
                         Rockchip_OSAL_MutexUnlock(srcInputUseBuffer->bufferMutex);
                         break;
+                    }
+                    
+                    if (pVideoDec->fp_in != NULL) {
+                        fwrite(srcInputUseBuffer->bufferHeader->pBuffer + srcInputUseBuffer->usedDataLen, 1, srcInputUseBuffer->dataLen, pVideoDec->fp_in);
+                        fflush(pVideoDec->fp_in);
                     }
                 }
 

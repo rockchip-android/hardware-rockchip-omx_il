@@ -74,6 +74,8 @@ typedef struct _ROCKCHIP_OMX_PRIORITYMGMTTYPE {
 } ROCKCHIP_OMX_PRIORITYMGMTTYPE;
 
 typedef struct _OMX_VIDEO_PARAMS_EXTENDED {
+    OMX_U32 nSize;
+    OMX_VERSIONTYPE nVersion;
     OMX_U32 ui32Flags;
     OMX_BOOL bEnableScaling; // Resolution Scaling
     OMX_U16 ui16ScaledWidth;
