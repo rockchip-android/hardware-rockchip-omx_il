@@ -38,6 +38,8 @@
 #include "Rockchip_OSAL_ETC.h"
 #include "Rockchip_OSAL_Android.h"
 #include "Rockchip_OSAL_RGA_Process.h"
+#include "Rockchip_OSAL_SharedMemory.h"
+
 #include "vpu_mem_pool.h"
 #include "vpu_api_private_cmd.h"
 #include <fcntl.h>
@@ -352,16 +354,22 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
             OMX_U32 enableDinterlace = 1;
             if (((inputUseBuffer->nFlags & OMX_BUFFERFLAG_EXTRADATA) == OMX_BUFFERFLAG_EXTRADATA)
                 || ((inputUseBuffer->nFlags & OMX_BUFFERFLAG_CODECCONFIG) == OMX_BUFFERFLAG_CODECCONFIG)) {
+                if(pVideoDec->bDRMPlayerMode == OMX_TRUE){
+                    omx_dbg("inputUseBuffer->bufferHeader->pBuffer = %p",inputUseBuffer->bufferHeader->pBuffer);
+                    extraData = inputUseBuffer->bufferHeader->pBuffer + inputUseBuffer->usedDataLen;
+                    omx_dbg("extraData = %p",extraData);
+                }else{
+                    omx_dbg("Rkvpu_SendInputData malloc");
+                    extraData = (OMX_U8 *)Rockchip_OSAL_Malloc(inputUseBuffer->dataLen);
+                    if (extraData == NULL) {
+                        omx_err("malloc Extra Data fail");
+                        ret = OMX_FALSE;
+                        goto EXIT;
+                    }
 
-                extraData = (OMX_U8 *)Rockchip_OSAL_Malloc(inputUseBuffer->dataLen);
-                if (extraData == NULL) {
-                    omx_err("malloc Extra Data fail");
-                    ret = OMX_FALSE;
-                    goto EXIT;
+                    Rockchip_OSAL_Memcpy(extraData, inputUseBuffer->bufferHeader->pBuffer + inputUseBuffer->usedDataLen,
+                                         inputUseBuffer->dataLen);
                 }
-
-                Rockchip_OSAL_Memcpy(extraData, inputUseBuffer->bufferHeader->pBuffer + inputUseBuffer->usedDataLen,
-                                     inputUseBuffer->dataLen);
                 if (pVideoDec->fp_in != NULL) {
                     fwrite(extraData, 1, inputUseBuffer->dataLen, pVideoDec->fp_in);
                     fflush(pVideoDec->fp_in);
@@ -371,6 +379,19 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
             }
 
             omx_trace("decode init");
+            //add by xhr
+            if (pVideoDec->bDRMPlayerMode == OMX_TRUE){
+                omx_info("set secure_mode");
+                OMX_U32 coding;
+                OMX_U32 is4kflag = 0;
+                /* 4K, goto rkv, 1080P goto vdpu */
+                if (p_vpu_ctx->width > 1920 || p_vpu_ctx->height >  1088) {
+                    omx_info("set secure_mode 4K");
+                    is4kflag = 1;
+                }
+                coding = p_vpu_ctx->videoCoding | (is4kflag << 31);
+                p_vpu_ctx->control(p_vpu_ctx, VPU_API_SET_SECURE_CONTEXT, &coding);
+            }
 
             p_vpu_ctx->init(p_vpu_ctx, extraData, extraSize);
             // not use iep when thumbNail decode
@@ -394,11 +415,28 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
             pVideoDec->bFirstFrame = OMX_FALSE;
             if (extraFlag) {
                 ret = OMX_TRUE;
-                if (extraData) {
+                if (extraData && !pVideoDec->bDRMPlayerMode) {
                     Rockchip_OSAL_Free(extraData);
                     extraData = NULL;
+                    Rkvpu_InputBufferReturn(pOMXComponent, inputUseBuffer);
+                } else if (extraData && pVideoDec->bDRMPlayerMode) {
+                    inputUseBuffer->dataValid = OMX_FALSE;
+                    ROCKCHIP_OMX_DATABUFFER * inputInValidBuffer;
+                    inputInValidBuffer = Rockchip_OSAL_Malloc(sizeof(ROCKCHIP_OMX_DATABUFFER));
+                    if(inputInValidBuffer == NULL) {
+                        omx_err("inputInValidBuffer malloc failed!");
+                        return OMX_FALSE;
+                    }
+                    inputInValidBuffer->bufferHeader = inputUseBuffer->bufferHeader;
+                    inputInValidBuffer->dataLen = inputUseBuffer->dataLen;
+                    inputInValidBuffer->timeStamp = inputUseBuffer->timeStamp;
+                    Rockchip_OSAL_MutexLock(rockchipInputPort->secureBufferMutex);
+                    Rockchip_OSAL_Queue(&rockchipInputPort->securebufferQ,inputInValidBuffer);
+                    Rockchip_OSAL_MutexUnlock(rockchipInputPort->secureBufferMutex);
+                } else {
+                    ;
                 }
-                Rkvpu_InputBufferReturn(pOMXComponent, inputUseBuffer);
+
                 goto EXIT;
             }
         }
@@ -449,7 +487,23 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
         }
 
 
-        Rkvpu_InputBufferReturn(pOMXComponent, inputUseBuffer);
+        if(pVideoDec->bDRMPlayerMode == OMX_TRUE){
+            inputUseBuffer->dataValid = OMX_FALSE;
+            ROCKCHIP_OMX_DATABUFFER * inputInValidBuffer;
+            inputInValidBuffer = Rockchip_OSAL_Malloc(sizeof(ROCKCHIP_OMX_DATABUFFER));
+            if(inputInValidBuffer == NULL) {
+                omx_err("inputInValidBuffer malloc failed!");
+                return OMX_FALSE;
+            }
+            inputInValidBuffer->bufferHeader = inputUseBuffer->bufferHeader;
+            inputInValidBuffer->dataLen = inputUseBuffer->dataLen;
+            inputInValidBuffer->timeStamp = inputUseBuffer->timeStamp;
+            Rockchip_OSAL_MutexLock(rockchipInputPort->secureBufferMutex);
+            Rockchip_OSAL_Queue(&rockchipInputPort->securebufferQ,inputInValidBuffer);
+            Rockchip_OSAL_MutexUnlock(rockchipInputPort->secureBufferMutex);
+        } else {
+            Rkvpu_InputBufferReturn(pOMXComponent, inputUseBuffer);
+        }
         if (pRockchipComponent->checkTimeStamp.needSetStartTimeStamp == OMX_TRUE) {
             pRockchipComponent->checkTimeStamp.needCheckStartTimeStamp = OMX_TRUE;
             pRockchipComponent->checkTimeStamp.startTimeStamp = inputUseBuffer->timeStamp;
@@ -584,6 +638,23 @@ OMX_BOOL Rkvpu_Post_OutputFrame(OMX_COMPONENTTYPE *pOMXComponent)
                 p_vpu_ctx->control(p_vpu_ctx, VPU_API_SET_INFO_CHANGE, NULL);
                 goto EXIT;
             }
+            if (pVideoDec->bDRMPlayerMode == OMX_TRUE){
+                int64_t frameNum = 0;
+                p_vpu_ctx->control(p_vpu_ctx, VPU_API_DEC_GET_STREAM_TOTAL, &frameNum);
+                if((frameNum != 0) &&  (pVideoDec->invalidCount + 2) < frameNum)
+                {
+                    omx_info("HeryHeryxxxxxframeNum = %lld, invalidCount = %lld",frameNum,pVideoDec->invalidCount);
+                    Rockchip_OSAL_MutexLock(pInputPort->secureBufferMutex);
+                    ROCKCHIP_OMX_DATABUFFER *securebuffer = NULL;
+                    securebuffer = (ROCKCHIP_OMX_DATABUFFER *) Rockchip_OSAL_Dequeue(&pInputPort->securebufferQ);
+                    if(securebuffer != NULL){
+                        Rkvpu_InputBufferReturn(pOMXComponent, securebuffer);
+                        Rockchip_OSAL_Free(securebuffer);
+                        pVideoDec->invalidCount++;
+                    }
+                    Rockchip_OSAL_MutexUnlock(pInputPort->secureBufferMutex);
+                }
+            }
 
             if (pVideoDec->bPrintFps == OMX_TRUE) {
                 OMX_BOOL isInput = OMX_FALSE;
@@ -591,6 +662,7 @@ OMX_BOOL Rkvpu_Post_OutputFrame(OMX_COMPONENTTYPE *pOMXComponent)
             }
 
             if (pframe->ErrorInfo && (pVideoDec->bGtsTest == OMX_FALSE)) {   //drop frame when this frame mark error from dec
+                omx_err("this frame is Error frame!,pOutput.timeUs = %lld",pOutput.timeUs);
                 if (pframe->vpumem.phy_addr > 0) {
                     VPUMemLink(&pframe->vpumem);
                     VPUFreeLinear(&pframe->vpumem);
@@ -1035,6 +1107,7 @@ OMX_ERRORTYPE omx_open_vpudec_context(RKVPU_OMX_VIDEODEC_COMPONENT *pVideoDec)
     pVideoDec->rkvpu_close_cxt = (OMX_S32 (*)(VpuCodecContext_t **ctx))dlsym(pVideoDec->rkapi_hdl, "vpu_close_context");
     return OMX_ErrorNone;
 }
+
 OMX_ERRORTYPE Rkvpu_Dec_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
 {
 
@@ -1084,6 +1157,8 @@ OMX_ERRORTYPE Rkvpu_Dec_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
     }
 
     p_vpu_ctx->enableparsing = 1;
+    p_vpu_ctx->extradata_size = 0;
+    p_vpu_ctx->extradata = NULL;
     p_vpu_ctx->width = pRockchipInputPort->portDefinition.format.video.nFrameWidth;
     p_vpu_ctx->height = pRockchipInputPort->portDefinition.format.video.nFrameHeight;
     p_vpu_ctx->codecType = CODEC_DECODER;
@@ -1094,12 +1169,16 @@ OMX_ERRORTYPE Rkvpu_Dec_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
 
     pVideoDec->bFirstFrame = OMX_TRUE;
     pVideoDec->maxCount = 0;
+    pVideoDec->invalidCount = 0;
+    pVideoDec->bInfoChange = OMX_FALSE;
+
     if (rga_dev_open(&pVideoDec->rga_ctx)  < 0) {
         omx_err("open rga device fail!");
     }
-
-    if (Rkvpu_OMX_CheckIsNeedFastmode(pRockchipComponent) != OMX_ErrorNone) {
-       omx_err("check fast mode failed!");
+    if (pVideoDec->bDRMPlayerMode == OMX_FALSE) {
+        if (Rkvpu_OMX_CheckIsNeedFastmode(pRockchipComponent) != OMX_ErrorNone) {
+           omx_err("check fast mode failed!");
+        }
     }
     /*
      ** if current stream is Div3, tell VPU_API of on2 decoder to
@@ -1123,8 +1202,8 @@ OMX_ERRORTYPE Rkvpu_Dec_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
 
     if (p_vpu_ctx->width > 1920 && p_vpu_ctx->height > 1080) {
         //add for kodi
-        property_set("sys.gpu.frames_num_of_sectionKD", "4");
-        property_set("sys.gpu.frames_num_to_skip_KD", "3");
+        //property_set("sys.gpu.frames_num_of_sectionKD", "4");
+       // property_set("sys.gpu.frames_num_to_skip_KD", "3");
         pVideoDec->b4K_flags = OMX_TRUE;
     }
 
@@ -1221,6 +1300,10 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentConstructor(OMX_HANDLETYPE hComponent, OMX_S
     }
 
     Rockchip_OSAL_Memset(pVideoDec, 0, sizeof(RKVPU_OMX_VIDEODEC_COMPONENT));
+    pVideoDec->hSharedMemory = Rockchip_OSAL_SharedMemory_Open();
+    if (pVideoDec->hSharedMemory == NULL) {
+        omx_err("Rockchip_OSAL_SharedMemory_Open open fail");
+    }
 
     pRockchipComponent->componentName = (OMX_STRING)Rockchip_OSAL_Malloc(MAX_OMX_COMPONENT_NAME_SIZE);
     if (pRockchipComponent->componentName == NULL) {
@@ -1349,12 +1432,19 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentConstructor(OMX_HANDLETYPE hComponent, OMX_S
         Rockchip_OSAL_Memset(pRockchipPort->portDefinition.format.video.cMIMEType, 0, MAX_OMX_MIMETYPE_SIZE);
         Rockchip_OSAL_Strcpy(pRockchipPort->portDefinition.format.video.cMIMEType, "video/avc");
         pVideoDec->codecId = OMX_VIDEO_CodingAVC;
+        pVideoDec->bDRMPlayerMode = OMX_TRUE;
         pRockchipPort->portDefinition.format.video.eCompressionFormat = OMX_VIDEO_CodingAVC;
 
     } else if (!strcmp(componentName, RK_OMX_COMPONENT_MPEG4_DEC)) {
         Rockchip_OSAL_Memset(pRockchipPort->portDefinition.format.video.cMIMEType, 0, MAX_OMX_MIMETYPE_SIZE);
         Rockchip_OSAL_Strcpy(pRockchipPort->portDefinition.format.video.cMIMEType, "video/mp4v-es");
         pVideoDec->codecId = OMX_VIDEO_CodingMPEG4;
+        pRockchipPort->portDefinition.format.video.eCompressionFormat =  OMX_VIDEO_CodingMPEG4;
+    } else if (!strcmp(componentName, RK_OMX_COMPONENT_MPEG4_DRM_DEC)) {
+        Rockchip_OSAL_Memset(pRockchipPort->portDefinition.format.video.cMIMEType, 0, MAX_OMX_MIMETYPE_SIZE);
+        Rockchip_OSAL_Strcpy(pRockchipPort->portDefinition.format.video.cMIMEType, "video/mp4v-es");
+        pVideoDec->codecId = OMX_VIDEO_CodingMPEG4;
+        pVideoDec->bDRMPlayerMode = OMX_TRUE;
         pRockchipPort->portDefinition.format.video.eCompressionFormat =  OMX_VIDEO_CodingMPEG4;
     } else if (!strcmp(componentName, RK_OMX_COMPONENT_H263_DEC)) {
         Rockchip_OSAL_Memset(pRockchipPort->portDefinition.format.video.cMIMEType, 0, MAX_OMX_MIMETYPE_SIZE);
@@ -1370,6 +1460,12 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentConstructor(OMX_HANDLETYPE hComponent, OMX_S
         Rockchip_OSAL_Memset(pRockchipPort->portDefinition.format.video.cMIMEType, 0, MAX_OMX_MIMETYPE_SIZE);
         Rockchip_OSAL_Strcpy(pRockchipPort->portDefinition.format.video.cMIMEType, "video/mpeg2");
         pVideoDec->codecId = OMX_VIDEO_CodingMPEG2;
+        pRockchipPort->portDefinition.format.video.eCompressionFormat = OMX_VIDEO_CodingMPEG2;
+    } else if (!strcmp(componentName, RK_OMX_COMPONENT_MPEG2_DRM_DEC)) {
+        Rockchip_OSAL_Memset(pRockchipPort->portDefinition.format.video.cMIMEType, 0, MAX_OMX_MIMETYPE_SIZE);
+        Rockchip_OSAL_Strcpy(pRockchipPort->portDefinition.format.video.cMIMEType, "video/mpeg2");
+        pVideoDec->codecId = OMX_VIDEO_CodingMPEG2;
+        pVideoDec->bDRMPlayerMode = OMX_TRUE;
         pRockchipPort->portDefinition.format.video.eCompressionFormat = OMX_VIDEO_CodingMPEG2;
     } else if (!strcmp(componentName, RK_OMX_COMPONENT_RMVB_DEC)) {
         Rockchip_OSAL_Memset(pRockchipPort->portDefinition.format.video.cMIMEType, 0, MAX_OMX_MIMETYPE_SIZE);
@@ -1396,6 +1492,17 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentConstructor(OMX_HANDLETYPE hComponent, OMX_S
         Rockchip_OSAL_Strcpy(pRockchipPort->portDefinition.format.video.cMIMEType, "video/vp6");
         pVideoDec->codecId = (OMX_VIDEO_CODINGTYPE)OMX_VIDEO_CodingVP6;
         pRockchipPort->portDefinition.format.video.eCompressionFormat = (OMX_VIDEO_CODINGTYPE)OMX_VIDEO_CodingVP6;
+    } else if (!strcmp(componentName, RK_OMX_COMPONENT_HEVC_DRM_DEC)) {
+        Rockchip_OSAL_Log(ROCKCHIP_LOG_ERROR, "Rockchip_OMX_ComponentConstructor hevc.secure");
+        Rockchip_OSAL_Memset(pRockchipPort->portDefinition.format.video.cMIMEType, 0, MAX_OMX_MIMETYPE_SIZE);
+        Rockchip_OSAL_Strcpy(pRockchipPort->portDefinition.format.video.cMIMEType, "video/hevc");
+        pVideoDec->codecId = OMX_VIDEO_CodingHEVC;
+        pVideoDec->bDRMPlayerMode = OMX_TRUE;
+#ifndef LOW_VRESION
+        pRockchipPort->portDefinition.format.video.eCompressionFormat = OMX_VIDEO_CodingHEVC;
+#else
+        pRockchipPort->portDefinition.format.video.eCompressionFormat = OMX_VIDEO_OLD_CodingHEVC;
+#endif
     } else if (!strcmp(componentName, RK_OMX_COMPONENT_HEVC_DEC)) {
         Rockchip_OSAL_Memset(pRockchipPort->portDefinition.format.video.cMIMEType, 0, MAX_OMX_MIMETYPE_SIZE);
         Rockchip_OSAL_Strcpy(pRockchipPort->portDefinition.format.video.cMIMEType, "video/hevc");
@@ -1412,9 +1519,21 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentConstructor(OMX_HANDLETYPE hComponent, OMX_S
         pRockchipPort->portDefinition.format.video.eCompressionFormat = OMX_VIDEO_CodingMJPEG;
     } else if (!strcmp(componentName, RK_OMX_COMPONENT_VP9_DEC)) {
         Rockchip_OSAL_Memset(pRockchipPort->portDefinition.format.video.cMIMEType, 0, MAX_OMX_MIMETYPE_SIZE);
-        Rockchip_OSAL_Strcpy(pRockchipPort->portDefinition.format.video.cMIMEType, "video/vp9");
+        Rockchip_OSAL_Strcpy(pRockchipPort->portDefinition.format.video.cMIMEType, "video/x-vnd.on2.vp9");
         pVideoDec->codecId = OMX_VIDEO_CodingVP9;
         pRockchipPort->portDefinition.format.video.eCompressionFormat = OMX_VIDEO_CodingVP9;
+    } else if (!strcmp(componentName, RK_OMX_COMPONENT_VP9_DRM_DEC)) {
+        Rockchip_OSAL_Memset(pRockchipPort->portDefinition.format.video.cMIMEType, 0, MAX_OMX_MIMETYPE_SIZE);
+        Rockchip_OSAL_Strcpy(pRockchipPort->portDefinition.format.video.cMIMEType, "video/x-vnd.on2.vp9");
+        pVideoDec->codecId = OMX_VIDEO_CodingVP9;
+        pVideoDec->bDRMPlayerMode = OMX_TRUE;
+        pRockchipPort->portDefinition.format.video.eCompressionFormat = OMX_VIDEO_CodingVP9;
+    } else if (!strcmp(componentName, RK_OMX_COMPONENT_VP8_DRM_DEC)) {
+        Rockchip_OSAL_Memset(pRockchipPort->portDefinition.format.video.cMIMEType, 0, MAX_OMX_MIMETYPE_SIZE);
+        Rockchip_OSAL_Strcpy(pRockchipPort->portDefinition.format.video.cMIMEType, "video/x-vnd.on2.vp8");
+        pVideoDec->codecId = OMX_VIDEO_CodingVP8;
+        pVideoDec->bDRMPlayerMode = OMX_TRUE;
+        pRockchipPort->portDefinition.format.video.eCompressionFormat = OMX_VIDEO_CodingVP8;
     } else {
         // IL client specified an invalid component name
         omx_err("VPU Component Invalid Component Name\n");
@@ -1465,6 +1584,10 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentDeInit(OMX_HANDLETYPE hComponent)
     pRockchipComponent = (ROCKCHIP_OMX_BASECOMPONENT *)pOMXComponent->pComponentPrivate;
 
     pVideoDec = (RKVPU_OMX_VIDEODEC_COMPONENT *)pRockchipComponent->hComponentHandle;
+    if (pVideoDec->hSharedMemory != NULL) {
+        Rockchip_OSAL_SharedMemory_Close(pVideoDec->hSharedMemory);
+        pVideoDec->hSharedMemory = NULL;
+    }
 
 //    Rockchip_OSAL_RefANB_Terminate(pVideoDec->hRefHandle);
     if (pVideoDec->fp_in != NULL) {
@@ -1472,8 +1595,8 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentDeInit(OMX_HANDLETYPE hComponent)
     }
     if (pVideoDec->b4K_flags == OMX_TRUE) {
         //add for kodi
-        property_set("sys.gpu.frames_num_of_sectionKD", "0");
-        property_set("sys.gpu.frames_num_to_skip_KD", "0");
+    //    property_set("sys.gpu.frames_num_of_sectionKD", "0");
+     //   property_set("sys.gpu.frames_num_to_skip_KD", "0");
         pVideoDec->b4K_flags = OMX_FALSE;
     }
     pInputPort = &pRockchipComponent->pRockchipPort[INPUT_PORT_INDEX];

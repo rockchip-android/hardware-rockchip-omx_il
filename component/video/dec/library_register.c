@@ -99,6 +99,26 @@ OSCL_EXPORT_REF int Rockchip_OMX_COMPONENT_Library_Register(RockchipRegisterComp
     Rockchip_OSAL_Strcpy(rockchipComponents[13]->roles[0], RK_OMX_COMPONENT_VP9_DEC_ROLE);
     rockchipComponents[13]->totalRoleNum = MAX_COMPONENT_ROLE_NUM;
 
+    Rockchip_OSAL_Strcpy(rockchipComponents[14]->componentName, RK_OMX_COMPONENT_HEVC_DRM_DEC);
+    Rockchip_OSAL_Strcpy(rockchipComponents[14]->roles[0], RK_OMX_COMPONENT_HEVC_DEC_ROLE);
+    rockchipComponents[14]->totalRoleNum = MAX_COMPONENT_ROLE_NUM;
+
+    Rockchip_OSAL_Strcpy(rockchipComponents[15]->componentName, RK_OMX_COMPONENT_MPEG4_DRM_DEC);
+    Rockchip_OSAL_Strcpy(rockchipComponents[15]->roles[0], RK_OMX_COMPONENT_MPEG4_DEC_ROLE);
+    rockchipComponents[15]->totalRoleNum = MAX_COMPONENT_ROLE_NUM;
+
+    Rockchip_OSAL_Strcpy(rockchipComponents[16]->componentName, RK_OMX_COMPONENT_MPEG2_DRM_DEC);
+    Rockchip_OSAL_Strcpy(rockchipComponents[16]->roles[0], RK_OMX_COMPONENT_MPEG2_DEC_ROLE);
+    rockchipComponents[16]->totalRoleNum = MAX_COMPONENT_ROLE_NUM;
+
+    Rockchip_OSAL_Strcpy(rockchipComponents[17]->componentName, RK_OMX_COMPONENT_VP9_DRM_DEC);
+    Rockchip_OSAL_Strcpy(rockchipComponents[17]->roles[0], RK_OMX_COMPONENT_VP9_DEC_ROLE);
+    rockchipComponents[17]->totalRoleNum = MAX_COMPONENT_ROLE_NUM;
+
+    Rockchip_OSAL_Strcpy(rockchipComponents[18]->componentName, RK_OMX_COMPONENT_VP8_DRM_DEC);
+    Rockchip_OSAL_Strcpy(rockchipComponents[18]->roles[0], RK_OMX_COMPONENT_VP8_DEC_ROLE);
+    rockchipComponents[18]->totalRoleNum = MAX_COMPONENT_ROLE_NUM;
+
 EXIT:
     FunctionOut();
 

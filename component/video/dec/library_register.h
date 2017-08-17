@@ -33,8 +33,8 @@
 
 
 #define OSCL_EXPORT_REF __attribute__((visibility("default")))
-#define MAX_COMPONENT_NUM       14
-#define MAX_COMPONENT_ROLE_NUM  14
+#define MAX_COMPONENT_NUM       19
+#define MAX_COMPONENT_ROLE_NUM  19
 
 #define RK_OMX_COMPONENT_H264_DEC "OMX.rk.video_decoder.avc"
 #define RK_OMX_COMPONENT_H264_DRM_DEC "OMX.rk.video_decoder.avc.secure"
@@ -42,6 +42,8 @@
 #define RK_OMX_COMPONENT_H264_DEC_ROLE "video_decoder.avc"
 
 #define RK_OMX_COMPONENT_MPEG4_DEC "OMX.rk.video_decoder.m4v"
+#define RK_OMX_COMPONENT_MPEG4_DRM_DEC "OMX.rk.video_decoder.m4v.secure"
+
 #define RK_OMX_COMPONENT_MPEG4_DEC_ROLE "video_decoder.mpeg4"
 
 #define RK_OMX_COMPONENT_H263_DEC "OMX.rk.video_decoder.h263"
@@ -51,6 +53,8 @@
 #define RK_OMX_COMPONENT_FLV_DEC_ROLE "video_decoder.flv1"
 
 #define RK_OMX_COMPONENT_MPEG2_DEC "OMX.rk.video_decoder.m2v"
+#define RK_OMX_COMPONENT_MPEG2_DRM_DEC "OMX.rk.video_decoder.m2v.secure"
+
 #define RK_OMX_COMPONENT_MPEG2_DEC_ROLE "video_decoder.mpeg2"
 
 #define RK_OMX_COMPONENT_RMVB_DEC "OMX.rk.video_decoder.rv"
@@ -69,6 +73,8 @@
 #define RK_OMX_COMPONENT_VP6_DEC_ROLE "video_decoder.vp6"
 
 #define RK_OMX_COMPONENT_HEVC_DEC "OMX.rk.video_decoder.hevc"
+#define RK_OMX_COMPONENT_HEVC_DRM_DEC "OMX.rk.video_decoder.hevc.secure"
+
 #define RK_OMX_COMPONENT_HEVC_DEC_ROLE "video_decoder.hevc"
 
 #define RK_OMX_COMPONENT_MJPEG_DEC "OMX.rk.video_decoder.mjpeg"
@@ -76,6 +82,11 @@
 
 #define RK_OMX_COMPONENT_VP9_DEC "OMX.rk.video_decoder.vp9"
 #define RK_OMX_COMPONENT_VP9_DEC_ROLE "video_decoder.vp9"
+
+
+#define RK_OMX_COMPONENT_VP9_DRM_DEC "OMX.rk.video_decoder.vp9.secure"
+
+#define RK_OMX_COMPONENT_VP8_DRM_DEC "OMX.rk.video_decoder.vp8.secure"
 
 
 #ifdef __cplusplus

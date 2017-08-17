@@ -585,6 +585,7 @@ OMX_ERRORTYPE Rockchip_OMX_Port_Constructor(OMX_HANDLETYPE hComponent)
     pRockchipInputPort = &pRockchipPort[INPUT_PORT_INDEX];
 
     Rockchip_OSAL_QueueCreate(&pRockchipInputPort->bufferQ, MAX_QUEUE_ELEMENTS);
+    Rockchip_OSAL_QueueCreate(&pRockchipInputPort->securebufferQ, MAX_QUEUE_ELEMENTS);
 
     pRockchipInputPort->extendBufferHeader = Rockchip_OSAL_Malloc(sizeof(ROCKCHIP_OMX_BUFFERHEADERTYPE) * MAX_BUFFER_NUM);
     if (pRockchipInputPort->extendBufferHeader == NULL) {
@@ -829,6 +830,7 @@ OMX_ERRORTYPE Rockchip_OMX_Port_Destructor(OMX_HANDLETYPE hComponent)
         pRockchipPort->extendBufferHeader = NULL;
 
         Rockchip_OSAL_QueueTerminate(&pRockchipPort->bufferQ);
+        Rockchip_OSAL_QueueTerminate(&pRockchipPort->securebufferQ);
     }
     Rockchip_OSAL_Free(pRockchipComponent->pRockchipPort);
     pRockchipComponent->pRockchipPort = NULL;

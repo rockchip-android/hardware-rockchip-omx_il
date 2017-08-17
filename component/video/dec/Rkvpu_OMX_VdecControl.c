@@ -43,6 +43,8 @@
 #include "Rockchip_OSAL_Mutex.h"
 #include "Rockchip_OSAL_ETC.h"
 #include "Rockchip_OSAL_Queue.h"
+#include "Rockchip_OSAL_SharedMemory.h"
+
 #include <hardware/hardware.h>
 #include "hardware/rga.h"
 #include "vpu.h"
@@ -296,7 +298,7 @@ OMX_ERRORTYPE Rkvpu_OMX_AllocateBuffer(
         goto EXIT;
     }
 
-#if 0
+#if 1
     if ((pVideoDec->bDRMPlayerMode == OMX_TRUE) && (nPortIndex == INPUT_PORT_INDEX)) {
         mem_type = SECURE_MEMORY;
     } else if (pRockchipPort->bufferProcessType == BUFFER_SHARE) {
@@ -305,17 +307,21 @@ OMX_ERRORTYPE Rkvpu_OMX_AllocateBuffer(
         mem_type = SYSTEM_MEMORY;
     }
 
-    temp_buffer = Rockchip_OSAL_SharedMemory_Alloc(pVideoDec->hSharedMemory, nSizeBytes, mem_type);
-    if (temp_buffer == NULL) {
-        ret = OMX_ErrorInsufficientResources;
-        goto EXIT;
-    }
-    temp_buffer_fd = Rockchip_OSAL_SharedMemory_VirtToION(pVideoDec->hSharedMemory, temp_buffer);
 #endif
-    temp_buffer = (OMX_U8 *)Rockchip_OSAL_Malloc(nSizeBytes);
-    if (temp_buffer == NULL) {
-        ret = OMX_ErrorInsufficientResources;
-        goto EXIT;
+    if (pVideoDec->bDRMPlayerMode == OMX_TRUE){
+        omx_trace("Rkvpu_OMX_AllocateBuffer bDRMPlayerMode");
+        temp_buffer = (OMX_U8 *)Rockchip_OSAL_SharedMemory_Alloc(pVideoDec->hSharedMemory, nSizeBytes, mem_type);
+        if (temp_buffer == NULL) {
+            omx_err("Rkvpu_OMX_AllocateBuffer bDRMPlayerMode error");
+            ret = OMX_ErrorInsufficientResources;
+            goto EXIT;
+        }
+    }else{
+        temp_buffer = (OMX_U8 *)Rockchip_OSAL_Malloc(nSizeBytes);
+        if (temp_buffer == NULL) {
+            ret = OMX_ErrorInsufficientResources;
+            goto EXIT;
+        }
     }
 
     temp_bufferHeader = (OMX_BUFFERHEADERTYPE *)Rockchip_OSAL_Malloc(sizeof(OMX_BUFFERHEADERTYPE));
@@ -332,9 +338,11 @@ OMX_ERRORTYPE Rkvpu_OMX_AllocateBuffer(
             pRockchipPort->extendBufferHeader[i].buf_fd[0] = temp_buffer_fd;
             pRockchipPort->bufferStateAllocate[i] = (BUFFER_STATE_ALLOCATED | HEADER_STATE_ALLOCATED);
             INIT_SET_SIZE_VERSION(temp_bufferHeader, OMX_BUFFERHEADERTYPE);
+            /*
             if (mem_type == SECURE_MEMORY)
                 ;//temp_bufferHeader->pBuffer = temp_buffer_fd;
             else
+                */
                 temp_bufferHeader->pBuffer = temp_buffer;
             temp_bufferHeader->nAllocLen      = nSizeBytes;
             temp_bufferHeader->pAppPrivate    = pAppPrivate;
@@ -418,7 +426,8 @@ OMX_ERRORTYPE Rkvpu_OMX_FreeBuffer(
         if (((pRockchipPort->bufferStateAllocate[i] | BUFFER_STATE_FREE) != 0) && (pRockchipPort->extendBufferHeader[i].OMXBufferHeader != NULL)) {
             if (pRockchipPort->extendBufferHeader[i].OMXBufferHeader->pBuffer == pBufferHdr->pBuffer) {
                 if (pRockchipPort->bufferStateAllocate[i] & BUFFER_STATE_ALLOCATED) {
-                    Rockchip_OSAL_Free(pRockchipPort->extendBufferHeader[i].OMXBufferHeader->pBuffer);
+                    if(pVideoDec->bDRMPlayerMode != 1)
+                        Rockchip_OSAL_Free(pRockchipPort->extendBufferHeader[i].OMXBufferHeader->pBuffer);
                     pRockchipPort->extendBufferHeader[i].OMXBufferHeader->pBuffer = NULL;
                     pBufferHdr->pBuffer = NULL;
                 } else if (pRockchipPort->bufferStateAllocate[i] & BUFFER_STATE_ASSIGNED) {
@@ -631,6 +640,7 @@ OMX_ERRORTYPE Rkvpu_OMX_BufferFlush(OMX_COMPONENTTYPE *pOMXComponent, OMX_S32 nP
     ROCKCHIP_OMX_BASEPORT      *pRockchipPort = NULL;
     ROCKCHIP_OMX_DATABUFFER    *flushPortBuffer[2] = {NULL, NULL};
     OMX_U32                   i = 0, cnt = 0;
+    ROCKCHIP_OMX_BASEPORT      *pInputPort  = NULL;
 
     FunctionIn();
 
@@ -649,6 +659,7 @@ OMX_ERRORTYPE Rkvpu_OMX_BufferFlush(OMX_COMPONENTTYPE *pOMXComponent, OMX_S32 nP
     }
     pRockchipComponent = (ROCKCHIP_OMX_BASECOMPONENT *)pOMXComponent->pComponentPrivate;
     pVideoDec = (RKVPU_OMX_VIDEODEC_COMPONENT *)pRockchipComponent->hComponentHandle;
+    pInputPort = &pRockchipComponent->pRockchipPort[INPUT_PORT_INDEX];
 
     pRockchipComponent->pRockchipPort[nPortIndex].bIsPortFlushed = OMX_TRUE;
 
@@ -671,10 +682,27 @@ OMX_ERRORTYPE Rkvpu_OMX_BufferFlush(OMX_COMPONENTTYPE *pOMXComponent, OMX_S32 nP
     if (pRockchipComponent->nRkFlags & RK_VPU_NEED_FLUSH_ON_SEEK) {
         p_vpu_ctx->flush(p_vpu_ctx);
         pRockchipComponent->nRkFlags &= ~RK_VPU_NEED_FLUSH_ON_SEEK;
+        Rockchip_OSAL_MutexLock(pInputPort->secureBufferMutex);
+        pVideoDec->invalidCount = 0;
+        Rockchip_OSAL_MutexUnlock(pInputPort->secureBufferMutex);
     }
 
     omx_trace("OMX_CommandFlush start, port:%d", nPortIndex);
     Rockchip_ResetCodecData(&pRockchipPort->processData);
+
+    Rockchip_OSAL_MutexLock(pInputPort->secureBufferMutex);
+    if (pVideoDec->bDRMPlayerMode == OMX_TRUE && pVideoDec->bInfoChange == OMX_FALSE){
+        int securebufferNum = Rockchip_OSAL_GetElemNum(&pInputPort->securebufferQ);
+        omx_trace("Rkvpu_OMX_BufferFlush in securebufferNum = %d",securebufferNum);
+        while(securebufferNum != 0){
+            ROCKCHIP_OMX_DATABUFFER *securebuffer = (ROCKCHIP_OMX_DATABUFFER *) Rockchip_OSAL_Dequeue(&pInputPort->securebufferQ);
+            Rkvpu_InputBufferReturn(pOMXComponent, securebuffer);
+            Rockchip_OSAL_Free(securebuffer);
+            securebufferNum = Rockchip_OSAL_GetElemNum(&pInputPort->securebufferQ);
+        }
+        omx_trace("Rkvpu_OMX_BufferFlush out securebufferNum = %d",securebufferNum);
+    }
+    Rockchip_OSAL_MutexUnlock(pInputPort->secureBufferMutex);
 
     if (ret == OMX_ErrorNone) {
         if (nPortIndex == INPUT_PORT_INDEX) {
@@ -697,6 +725,8 @@ OMX_ERRORTYPE Rkvpu_OMX_BufferFlush(OMX_COMPONENTTYPE *pOMXComponent, OMX_S32 nP
                                                          OMX_EventCmdComplete,
                                                          OMX_CommandFlush, nPortIndex, NULL);
     }
+    if(pVideoDec->bInfoChange == OMX_TRUE)
+        pVideoDec->bInfoChange = OMX_FALSE;
     Rockchip_OSAL_MutexUnlock(flushPortBuffer[1]->bufferMutex);
     Rockchip_OSAL_MutexUnlock(flushPortBuffer[0]->bufferMutex);
 

@@ -36,11 +36,15 @@
 #include <sys/mman.h>
 #include "vpu.h"
 
+#include "drm_mode.h"
+#include "drm.h"
+
 #include "Rockchip_OSAL_SharedMemory.h"
 #include "Rockchip_OSAL_Mutex.h"
 
 #include <linux/rockchip_ion.h>
 #include <linux/ion.h>
+#include <dlfcn.h>
 
 
 
@@ -48,10 +52,11 @@
 #include "Rockchip_OSAL_Log.h"
 
 static int mem_cnt = 0;
+static int mem_type = MEMORY_TYPE_ION;
 
 struct ROCKCHIP_SHAREDMEM_LIST;
 typedef struct _ROCKCHIP_SHAREDMEM_LIST {
-    ion_user_handle_t              ion_hdl;
+    RK_U32                         ion_hdl;
     OMX_PTR                        mapAddr;
     OMX_U32                        allocSize;
     OMX_BOOL                       owner;
@@ -63,7 +68,6 @@ typedef struct _ROCKCHIP_SHARED_MEMORY {
     ROCKCHIP_SHAREDMEM_LIST *pAllocMemory;
     OMX_HANDLETYPE         hSMMutex;
 } ROCKCHIP_SHARED_MEMORY;
-
 
 #define ION_FUNCTION                (0x00000001)
 #define ION_DEVICE                  (0x00000002)
@@ -156,6 +160,223 @@ int ion_import(int fd, int share_fd, ion_user_handle_t *handle)
     return ret;
 }
 
+int ion_get_phys(int fd, ion_user_handle_t handle, unsigned long *phys)
+{
+    struct ion_phys_data phys_data;
+    struct ion_custom_data data;
+
+    phys_data.handle = handle;
+    phys_data.phys = 0;
+
+    data.cmd = ION_IOC_GET_PHYS;
+    data.arg = (unsigned long)&phys_data;
+
+    int ret = ion_ioctl(fd, ION_IOC_CUSTOM, &data);
+    omx_err("ion_get_phys:phys_data.phys = %p",phys_data.phys);
+    omx_err("ion_get_phys:phys_data.size = %ld",phys_data.size);
+    if (ret<0)
+        return ret;
+
+    *phys = phys_data.phys;
+
+    return 0;
+}
+
+
+static int drm_ioctl(int fd, int req, void *arg)
+{
+    int ret;
+
+    do {
+        ret = ioctl(fd, req, arg);
+    } while (ret == -1 && (errno == EINTR || errno == EAGAIN));
+
+    omx_err("drm_ioctl %x with code %d: %s", req,
+            ret, strerror(errno));
+
+    return ret;
+}
+
+
+typedef void *(*func_mmap64)(void* addr, size_t length, int prot, int flags,
+                             int fd, off_t offset);
+static func_mmap64 mpp_rt_mmap64 = NULL;
+
+
+func_mmap64 mpp_rt_get_mmap64()
+{
+    static RK_U32 once = 1;
+
+    if (once) {
+        void *libc_hdl = dlopen("libc", RTLD_LAZY);
+        if (libc_hdl) {
+            mpp_rt_mmap64 = (func_mmap64)dlsym(libc_hdl, "mmap64");
+            dlclose(libc_hdl);
+        }
+
+        once = 0;
+    }
+
+    return mpp_rt_mmap64;
+}
+
+
+static void* drm_mmap(int fd, size_t len, int prot, int flags, loff_t offset)
+{
+    static unsigned long pagesize_mask = 0;
+    func_mmap64 fp_mmap64 = mpp_rt_get_mmap64();
+
+    if (fd < 0)
+        return NULL;
+
+    if (!pagesize_mask)
+        pagesize_mask = sysconf(_SC_PAGESIZE) - 1;
+
+    len = (len + pagesize_mask) & ~pagesize_mask;
+
+    if (offset & 4095) {
+        return NULL;
+    }
+
+    if (fp_mmap64)
+        return fp_mmap64(NULL, len, prot, flags, fd, offset);
+
+    return NULL;
+}
+
+
+static int drm_handle_to_fd(int fd, RK_U32 handle, int *map_fd, RK_U32 flags)
+{
+    int ret;
+    struct drm_prime_handle dph;
+    memset(&dph, 0, sizeof(struct drm_prime_handle));
+    dph.handle = handle;
+    dph.fd = -1;
+    dph.flags = flags;
+
+    if (map_fd == NULL)
+        return -EINVAL;
+
+    ret = drm_ioctl(fd, DRM_IOCTL_PRIME_HANDLE_TO_FD, &dph);
+    if (ret < 0) {
+        return ret;
+    }
+
+    *map_fd = dph.fd;
+
+    omx_err("get fd %d", *map_fd);
+
+    if (*map_fd < 0) {
+        omx_err("map ioctl returned negative fd\n");
+        return -EINVAL;
+    }
+
+    return ret;
+}
+
+
+
+static int drm_fd_to_handle(int fd, int map_fd, RK_U32 *handle, RK_U32 flags)
+{
+    int ret;
+    struct drm_prime_handle dph;
+
+    dph.fd = map_fd;
+    dph.flags = flags;
+
+    ret = drm_ioctl(fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &dph);
+    if (ret < 0) {
+        return ret;
+    }
+
+    *handle = dph.handle;
+    omx_err("get handle %d", *handle);
+
+    return ret;
+}
+
+
+static int drm_map(int fd, RK_U32 handle, size_t length, int prot,
+                   int flags, unsigned char **ptr, int *map_fd)
+{
+    int ret;
+    struct drm_mode_map_dumb dmmd;
+    memset(&dmmd, 0, sizeof(dmmd));
+    dmmd.handle = handle;
+
+    if (map_fd == NULL)
+        return -EINVAL;
+    if (ptr == NULL)
+        return -EINVAL;
+
+    ret = drm_handle_to_fd(fd, handle, map_fd, 0);
+    omx_err("drm_map fd %d", *map_fd);
+    if (ret < 0)
+        return ret;
+
+    ret = drm_ioctl(fd, DRM_IOCTL_MODE_MAP_DUMB, &dmmd);
+    if (ret < 0) {
+        close(*map_fd);
+        return ret;
+    }
+
+    omx_err("dev fd %d length %d", fd, length);
+
+    *ptr = drm_mmap(fd, length, prot, flags, dmmd.offset);
+    if (*ptr == MAP_FAILED) {
+        close(*map_fd);
+        *map_fd = -1;
+        omx_err("mmap failed: %s\n", strerror(errno));
+        return -errno;
+    }
+
+    return ret;
+}
+
+
+
+
+
+static int drm_alloc(int fd, size_t len, size_t align, RK_U32 *handle, int flag)
+{
+    int ret;
+    struct drm_mode_create_dumb dmcb;
+
+    omx_err("len %ld aligned %ld\n", len, align);
+
+    memset(&dmcb, 0, sizeof(struct drm_mode_create_dumb));
+    dmcb.bpp = 8;
+    dmcb.width = (len + align - 1) & (~(align - 1));
+    dmcb.height = 1;
+    dmcb.size = dmcb.width * dmcb.bpp;
+    dmcb.flags = flag;
+
+    omx_err("fd %d aligned %d size %lld\n", fd, align, dmcb.size);
+
+    if (handle == NULL)
+        return -1;
+
+    ret = drm_ioctl(fd, DRM_IOCTL_MODE_CREATE_DUMB, &dmcb);
+    if (ret < 0)
+        return ret;
+    *handle = dmcb.handle;
+
+    omx_err("get handle %d size %d", *handle, dmcb.size);
+
+    return ret;
+}
+
+
+
+
+static int drm_free(int fd, RK_U32 handle)
+{
+    struct drm_mode_destroy_dumb data = {
+        .handle = handle,
+    };
+    return drm_ioctl(fd, DRM_IOCTL_MODE_DESTROY_DUMB, &data);
+}
+
 OMX_HANDLETYPE Rockchip_OSAL_SharedMemory_Open()
 {
     ROCKCHIP_SHARED_MEMORY *pHandle = NULL;
@@ -165,8 +386,15 @@ OMX_HANDLETYPE Rockchip_OSAL_SharedMemory_Open()
     Rockchip_OSAL_Memset(pHandle, 0, sizeof(ROCKCHIP_SHARED_MEMORY));
     if (pHandle == NULL)
         goto EXIT;
-
-    IONClient = open("/dev/ion", O_RDWR);
+    if (!access("/dev/ion", F_OK)) {
+        IONClient = open("/dev/ion", O_RDWR);
+        omx_err("111ion_client_create Error: %d", IONClient);
+        mem_type = MEMORY_TYPE_ION;
+    } else {
+        IONClient = open("/dev/dri/card0", O_RDWR);
+        omx_err("222ion_client_create Error: %d", IONClient);
+        mem_type = MEMORY_TYPE_DRM;
+    }
 
     if (IONClient <= 0) {
         omx_err("ion_client_create Error: %d", IONClient);
@@ -206,8 +434,13 @@ void Rockchip_OSAL_SharedMemory_Close(OMX_HANDLETYPE handle)
         pDeleteElement->mapAddr = NULL;
         pDeleteElement->allocSize = 0;
 
-        if (pDeleteElement->owner)
-            ion_free(pHandle->fd, pDeleteElement->ion_hdl);
+        if (pDeleteElement->owner) {
+            if (mem_type == MEMORY_TYPE_ION) {
+                ion_free(pHandle->fd, pDeleteElement->ion_hdl);
+            } else {
+                drm_free(pHandle->fd, pDeleteElement->ion_hdl);
+            }
+        }
         pDeleteElement->ion_hdl = -1;
 
         Rockchip_OSAL_Free(pDeleteElement);
@@ -251,12 +484,15 @@ OMX_PTR Rockchip_OSAL_SharedMemory_Alloc(OMX_HANDLETYPE handle, OMX_U32 size, ME
     ROCKCHIP_SHAREDMEM_LIST *pSMList         = NULL;
     ROCKCHIP_SHAREDMEM_LIST *pElement        = NULL;
     ROCKCHIP_SHAREDMEM_LIST *pCurrentElement = NULL;
-    ion_user_handle_t      ion_hdl = -1;
-    OMX_PTR                pBuffer         = NULL;
+    OMX_U32                 ion_hdl          = 0;
+    OMX_PTR                 pBuffer          = NULL;
+    unsigned long           phys             = 0;
     unsigned int mask;
     unsigned int flag;
     int err = 0;
     int map_fd = -1;
+
+    struct drm_rockchip_gem_phys phys_arg;
 
     if (pHandle == NULL)
         goto EXIT;
@@ -264,11 +500,38 @@ OMX_PTR Rockchip_OSAL_SharedMemory_Alloc(OMX_HANDLETYPE handle, OMX_U32 size, ME
     pElement = (ROCKCHIP_SHAREDMEM_LIST *)malloc(sizeof(ROCKCHIP_SHAREDMEM_LIST));
     Rockchip_OSAL_Memset(pElement, 0, sizeof(ROCKCHIP_SHAREDMEM_LIST));
     pElement->owner = OMX_TRUE;
+    int secure_flag = 0;
 
     switch (memoryType) {
     case SECURE_MEMORY:
-        mask = ION_HEAP(ION_CMA_HEAP_ID);
+        //mask = ION_HEAP(ION_CMA_HEAP_ID);
+        mask = ION_HEAP(ION_SECURE_HEAP_ID);
         flag = 0;
+        omx_err("11pHandle->fd = %d,size = %d",pHandle->fd,size);
+        err = drm_alloc(pHandle->fd, size, 4096, &ion_hdl, ROCKCHIP_BO_SECURE);
+        //err = ion_alloc(pHandle->fd, size, 4096, mask, 0, (ion_user_handle_t *)&ion_hdl);
+        if (err) {
+            omx_err("ion_alloc failed with err (%d)", err);
+            goto EXIT;
+        }
+
+        phys_arg.handle = ion_hdl;
+        err = drm_ioctl(pHandle->fd, DRM_IOCTL_ROCKCHIP_GEM_GET_PHYS, &phys_arg);
+        if (err) {
+            omx_err("failed to get phy address: %s\n", strerror(errno));
+        }
+
+        secure_flag = 1;
+        if(phys_arg.phy_addr == 0){
+            omx_err("security alloc NULL");
+            goto EXIT;
+        }
+        omx_err("security alloc buff 0x%x", phys_arg.phy_addr);
+        pElement->mapAddr = (OMX_PTR)phys_arg.phy_addr;
+        pElement->allocSize = size;
+        pElement->ion_hdl = ion_hdl;
+        pElement->pNextMemory = NULL;
+        pBuffer = (OMX_PTR)phys_arg.phy_addr;
         break;
     case SYSTEM_MEMORY:
         mask =  ION_HEAP(ION_VMALLOC_HEAP_ID);;
@@ -280,29 +543,31 @@ OMX_PTR Rockchip_OSAL_SharedMemory_Alloc(OMX_HANDLETYPE handle, OMX_U32 size, ME
         break;
     }
 
-    err = ion_alloc((int)pHandle->fd, size, 4096, mask, flag, (ion_user_handle_t *)&ion_hdl);
+    if (!secure_flag) {
+        err = ion_alloc((int)pHandle->fd, size, 4096, mask, flag, (ion_user_handle_t *)&ion_hdl);
 
-    if (err < 0) {
-        omx_err("ion_alloc Error: %d", ion_hdl);
-        Rockchip_OSAL_Free((OMX_PTR)pElement);
-        goto EXIT;
+        if (err < 0) {
+            omx_err("ion_alloc Error: %d", ion_hdl);
+            Rockchip_OSAL_Free((OMX_PTR)pElement);
+            goto EXIT;
+        }
+
+        err = ion_map((int)pHandle->fd, ion_hdl, size, PROT_READ | PROT_WRITE,
+                      MAP_SHARED, (off_t)0, (unsigned char**)&pBuffer, &map_fd);
+
+        if (err) {
+            omx_err("ion_map Error");
+            ion_free(pHandle->fd, ion_hdl);
+            Rockchip_OSAL_Free((OMX_PTR)pElement);
+            pBuffer = NULL;
+            goto EXIT;
+        }
+
+        pElement->ion_hdl = ion_hdl;
+        pElement->mapAddr = pBuffer;
+        pElement->allocSize = size;
+        pElement->pNextMemory = NULL;
     }
-
-    err = ion_map((int)pHandle->fd, ion_hdl, size, PROT_READ | PROT_WRITE,
-                  MAP_SHARED, (off_t)0, (unsigned char**)&pBuffer, &map_fd);
-
-    if (err) {
-        omx_err("ion_map Error");
-        ion_free(pHandle->fd, ion_hdl);
-        Rockchip_OSAL_Free((OMX_PTR)pElement);
-        pBuffer = NULL;
-        goto EXIT;
-    }
-
-    pElement->ion_hdl = ion_hdl;
-    pElement->mapAddr = pBuffer;
-    pElement->allocSize = size;
-    pElement->pNextMemory = NULL;
 
     Rockchip_OSAL_MutexLock(pHandle->hSMMutex);
     pSMList = pHandle->pAllocMemory;
@@ -369,8 +634,13 @@ void Rockchip_OSAL_SharedMemory_Free(OMX_HANDLETYPE handle, OMX_PTR pBuffer)
     pDeleteElement->mapAddr = NULL;
     pDeleteElement->allocSize = 0;
 
-    if (pDeleteElement->owner)
-        ion_free(pHandle->fd, (ion_user_handle_t)pDeleteElement->ion_hdl);
+    if (pDeleteElement->owner) {
+        if (mem_cnt == MEMORY_TYPE_ION) {
+            ion_free(pHandle->fd, (ion_user_handle_t)pDeleteElement->ion_hdl);
+        } else {
+            drm_free(pHandle->fd, pDeleteElement->ion_hdl);
+        }
+    }
     pDeleteElement->ion_hdl = -1;
 
     Rockchip_OSAL_Free(pDeleteElement);
@@ -403,16 +673,28 @@ OMX_PTR Rockchip_OSAL_SharedMemory_Map(OMX_HANDLETYPE handle, OMX_U32 size, int 
         Rockchip_OSAL_Free((void*)pElement);
         goto EXIT;
     }
+    if (mem_type == MEMORY_TYPE_ION) {
+        err = ion_map(pHandle->fd, (ion_user_handle_t)ion_hdl, size, PROT_READ | PROT_WRITE,
+                      MAP_SHARED, (off_t)0, (unsigned char**)&pBuffer, &map_fd);
+        if (pBuffer == NULL) {
+            omx_err("ion_map Error");
+            ion_free(pHandle->fd, (ion_user_handle_t)ion_hdl);
+            Rockchip_OSAL_Free((void*)pElement);
+            goto EXIT;
+        }
 
-    err = ion_map(pHandle->fd, (ion_user_handle_t)ion_hdl, size, PROT_READ | PROT_WRITE,
-                  MAP_SHARED, (off_t)0, (unsigned char**)&pBuffer, &map_fd);
+    } else {
+    	err = drm_map(pHandle->fd, ion_hdl, size, PROT_READ | PROT_WRITE,
+                      MAP_SHARED, (unsigned char**)&pBuffer, &map_fd);
+        if (pBuffer == NULL) {
+            omx_err("ion_map Error");
+            drm_free(pHandle->fd, ion_hdl);
+            Rockchip_OSAL_Free((void*)pElement);
+            goto EXIT;
+        }
 
-    if (pBuffer == NULL) {
-        omx_err("ion_map Error");
-        ion_free(pHandle->fd, (ion_user_handle_t)ion_hdl);
-        Rockchip_OSAL_Free((void*)pElement);
-        goto EXIT;
     }
+
 
     pElement->ion_hdl = ion_hdl;
     pElement->mapAddr = pBuffer;

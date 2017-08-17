@@ -637,9 +637,9 @@ OMX_ERRORTYPE Rockchip_OSAL_SetANBParameter(
             if (pVideoDec->bIsANBEnabled == OMX_TRUE) {
                 pRockchipPort->bufferProcessType = BUFFER_SHARE;
                 pRockchipPort->portDefinition.nBufferCountActual = 22;
-                if (pRockchipPort->portDefinition.format.video.nFrameWidth > 1920
-                        && pRockchipPort->portDefinition.format.video.nFrameHeight > 1920) {
-                    pRockchipPort->portDefinition.nBufferCountActual = 16;
+                if (pRockchipPort->portDefinition.format.video.nFrameWidth 
+                        * pRockchipPort->portDefinition.format.video.nFrameHeight > 1920 * 1088) {
+                    pRockchipPort->portDefinition.nBufferCountActual = 14;
                 }
                 if (pRockchipPort->portDefinition.format.video.nFrameWidth <= 1280) {
                     pRockchipPort->portDefinition.nBufferCountActual = 25;
@@ -739,9 +739,9 @@ OMX_ERRORTYPE Rockchip_OSAL_SetANBParameter(
             pVideoDec->bStoreMetaData = pANBParams->bStoreMetaData;
             pRockchipPort->bufferProcessType = BUFFER_SHARE;
             pRockchipPort->portDefinition.nBufferCountActual = 17;
-            if (pRockchipPort->portDefinition.format.video.nFrameWidth > 1920
-                    && pRockchipPort->portDefinition.format.video.nFrameHeight > 1920) {
-                pRockchipPort->portDefinition.nBufferCountActual = 16;
+            if (pRockchipPort->portDefinition.format.video.nFrameWidth 
+			        * pRockchipPort->portDefinition.format.video.nFrameHeight > 1920 * 1088) {
+                pRockchipPort->portDefinition.nBufferCountActual = 14;
             }
             if (pRockchipPort->portDefinition.format.video.nFrameWidth <= 1280) {
                 pRockchipPort->portDefinition.nBufferCountActual = 25;
@@ -1050,6 +1050,9 @@ OMX_ERRORTYPE Rockchip_OSAL_Fd2VpumemPool(ROCKCHIP_OMX_BASECOMPONENT *pRockchipC
             if (priv_hnd.share_fd > 0) {
                 if (priv_hnd.size) {
                     nBytesize = priv_hnd.size;
+                }
+                if (pVideoDec->bDRMPlayerMode == OMX_TRUE) {
+                    priv_hnd.share_fd |= 1 << 10;
                 }
                 dupshared_fd = pMem_pool->commit_hdl(pMem_pool, priv_hnd.share_fd , nBytesize);
                 if (dupshared_fd > 0) {

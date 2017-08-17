@@ -228,6 +228,8 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentStateSet(OMX_COMPONENTTYPE *pOMXComponent, O
                 }
                 Rockchip_OSAL_MutexTerminate(pRockchipComponent->pRockchipPort[i].hPortMutex);
                 pRockchipComponent->pRockchipPort[i].hPortMutex = NULL;
+                Rockchip_OSAL_MutexTerminate(pRockchipComponent->pRockchipPort[i].secureBufferMutex);
+                pRockchipComponent->pRockchipPort[i].secureBufferMutex = NULL;
             }
 
             if (pRockchipComponent->bMultiThreadProcess == OMX_FALSE) {
@@ -274,6 +276,8 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentStateSet(OMX_COMPONENTTYPE *pOMXComponent, O
                 }
                 Rockchip_OSAL_MutexTerminate(pRockchipComponent->pRockchipPort[i].hPortMutex);
                 pRockchipComponent->pRockchipPort[i].hPortMutex = NULL;
+                Rockchip_OSAL_MutexTerminate(pRockchipComponent->pRockchipPort[i].secureBufferMutex);
+                pRockchipComponent->pRockchipPort[i].secureBufferMutex = NULL;
             }
             if (pRockchipComponent->bMultiThreadProcess == OMX_FALSE) {
                 Rockchip_OSAL_SignalTerminate(pRockchipComponent->pauseEvent);
@@ -413,6 +417,11 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentStateSet(OMX_COMPONENTTYPE *pOMXComponent, O
                     ret = OMX_ErrorInsufficientResources;
                     goto EXIT;
                 }
+                ret = Rockchip_OSAL_MutexCreate(&pRockchipComponent->pRockchipPort[i].secureBufferMutex);
+                if (ret != OMX_ErrorNone) {
+                    ret = OMX_ErrorInsufficientResources;
+                    goto EXIT;
+                }
             }
             omx_trace("rockchip_BufferProcessCreate");
 
@@ -446,6 +455,8 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentStateSet(OMX_COMPONENTTYPE *pOMXComponent, O
                     }
                     Rockchip_OSAL_MutexTerminate(pRockchipComponent->pRockchipPort[i].hPortMutex);
                     pRockchipComponent->pRockchipPort[i].hPortMutex = NULL;
+                    Rockchip_OSAL_MutexTerminate(pRockchipComponent->pRockchipPort[i].secureBufferMutex);
+                    pRockchipComponent->pRockchipPort[i].secureBufferMutex = NULL;
                 }
                 for (i = 0; i < ALL_PORT_NUM; i++) {
                     Rockchip_OSAL_SemaphoreTerminate(pRockchipComponent->pRockchipPort[i].bufferSemID);

@@ -138,7 +138,8 @@ typedef struct _ROCKCHIP_OMX_BASEPORT {
     OMX_U32                       *bufferStateAllocate;
     OMX_PARAM_PORTDEFINITIONTYPE   portDefinition;
     OMX_HANDLETYPE                 bufferSemID;
-    ROCKCHIP_QUEUE                   bufferQ;
+    ROCKCHIP_QUEUE                 bufferQ;
+    ROCKCHIP_QUEUE                 securebufferQ;
     OMX_U32                        assignedBufferNum;
     OMX_STATETYPE                  portState;
     OMX_HANDLETYPE                 loadedResource;
@@ -178,6 +179,7 @@ typedef struct _ROCKCHIP_OMX_BASEPORT {
     /* for flush of Shared buffer scheme */
     OMX_HANDLETYPE                 hAllCodecBufferReturnEvent;
     OMX_HANDLETYPE                 hPortMutex;
+    OMX_HANDLETYPE                 secureBufferMutex;
     ROCKCHIP_OMX_EXCEPTION_STATE     exceptionFlag;
 
     OMX_PARAM_PORTDEFINITIONTYPE   newPortDefinition;
