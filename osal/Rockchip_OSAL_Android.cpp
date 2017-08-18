@@ -27,6 +27,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
 
 #include <system/window.h>
 #include <ui/GraphicBufferMapper.h>
@@ -1149,12 +1151,56 @@ OMX_ERRORTYPE  Rockchip_OSAL_Closevpumempool(OMX_IN ROCKCHIP_OMX_BASECOMPONENT *
     return OMX_ErrorNone;
 }
 
+
+//DDR Frequency conversion
+ OMX_ERRORTYPE Rockchip_OSAL_PowerControl(
+    ROCKCHIP_OMX_BASECOMPONENT *pRockchipComponent,
+    int32_t width,
+    int32_t height,
+    int32_t mHevc,
+    int32_t frameRate,
+    OMX_BOOL mFlag,
+ 	int bitDepth)
+{
+    RKVPU_OMX_VIDEODEC_COMPONENT *pVideoDec = (RKVPU_OMX_VIDEODEC_COMPONENT *)pRockchipComponent->hComponentHandle;
+    char prop_value[PROPERTY_VALUE_MAX];
+    if (!property_get("sf.power.control", prop_value, NULL) || atoi(prop_value) <= 0) {
+        return OMX_ErrorUndefined;
+    }
+
+    if (pVideoDec->power_fd == -1) {
+        pVideoDec->power_fd = open("/dev/video_state", O_WRONLY);
+        if (pVideoDec->power_fd == -1) {
+            omx_err("power control open fd fail");
+        }
+    }
+
+    if (bitDepth <= 0) bitDepth = 8;
+
+    char para[200]= {0};
+    int paraLen = 0;
+    paraLen = sprintf(para, "%d,width=%d,height=%d,ishevc=%d,videoFramerate=%d,streamBitrate=%d", mFlag, width, height, mHevc, frameRate, bitDepth);
+    omx_info(" write: %s", para);
+    if (pVideoDec->power_fd != -1) {
+        write(pVideoDec->power_fd, para, paraLen);
+        if (!mFlag) {
+            close(pVideoDec->power_fd);
+            pVideoDec->power_fd = -1;
+        }
+    }
+
+    return OMX_ErrorNone;
+}
+
+
+
 OMX_COLOR_FORMATTYPE Rockchip_OSAL_CheckFormat(
     ROCKCHIP_OMX_BASECOMPONENT *pRockchipComponent,
     OMX_IN OMX_PTR pVpuframe)
 {
-    RKVPU_OMX_VIDEODEC_COMPONENT *pVideoDec = (RKVPU_OMX_VIDEODEC_COMPONENT *)pRockchipComponent->hComponentHandle;
-    OMX_COLOR_FORMATTYPE eColorFormat = (OMX_COLOR_FORMATTYPE)HAL_PIXEL_FORMAT_YCrCb_NV12;
+    RKVPU_OMX_VIDEODEC_COMPONENT    *pVideoDec          = (RKVPU_OMX_VIDEODEC_COMPONENT *)pRockchipComponent->hComponentHandle;
+    ROCKCHIP_OMX_BASEPORT           *pInputPort         = &pRockchipComponent->pRockchipPort[INPUT_PORT_INDEX];
+    OMX_COLOR_FORMATTYPE             eColorFormat       = (OMX_COLOR_FORMATTYPE)HAL_PIXEL_FORMAT_YCrCb_NV12;
     VPU_FRAME *pframe = (VPU_FRAME *)pVpuframe;
     VpuCodecContext_t *p_vpu_ctx = pVideoDec->vpu_ctx;
     if ((pVideoDec->codecId == OMX_VIDEO_CodingHEVC && (pframe->OutputWidth != 0x20))
@@ -1170,6 +1216,24 @@ OMX_COLOR_FORMATTYPE Rockchip_OSAL_CheckFormat(
            OMX_RK_EXT_DYNCRANGE dyncRange = (OMX_RK_EXT_DYNCRANGE)((pframe->ColorType & OMX_DYNCRANGE_MASK) >> 24);
            pVideoDec->extDyncRange = dyncRange;
         }
+
+        if (pVideoDec->bIsPowerControl == OMX_TRUE && pVideoDec->bIs10bit == OMX_FALSE) {
+            Rockchip_OSAL_PowerControl(pRockchipComponent, 3840, 2160, pVideoDec->bIsHevc,
+                                           pInputPort->portDefinition.format.video.xFramerate,
+                                           OMX_FALSE,
+                                           8);
+            pVideoDec->bIsPowerControl = OMX_FALSE;
+        }
+
+        if (pframe->FrameWidth > 1920 && pframe->FrameHeight > 1088 
+            && pVideoDec->bIsPowerControl == OMX_FALSE) {
+            Rockchip_OSAL_PowerControl(pRockchipComponent, 3840, 2160, pVideoDec->bIsHevc,
+                                           pInputPort->portDefinition.format.video.xFramerate,
+                                           OMX_TRUE,
+                                           10);
+            pVideoDec->bIsPowerControl = OMX_TRUE;
+        }
+        pVideoDec->bIs10bit = OMX_TRUE;
     }
 
     return eColorFormat;

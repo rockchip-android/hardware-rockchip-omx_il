@@ -1108,6 +1108,16 @@ OMX_ERRORTYPE Rkvpu_Dec_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
     /*  if (pVideoDec->flags & RKVPU_OMX_VDEC_IS_DIV3) {
           p_vpu_ctx->videoCoding = OMX_RK_VIDEO_CodingDIVX3;
       }*/
+    if (pVideoDec->codecId == OMX_VIDEO_CodingHEVC) {
+        pVideoDec->bIsHevc = 1;
+    }
+    if (p_vpu_ctx->width > 1920 && p_vpu_ctx->height > 1088) {
+        Rockchip_OSAL_PowerControl(pRockchipComponent, 3840, 2160, pVideoDec->bIsHevc,
+                                       pRockchipInputPort->portDefinition.format.video.xFramerate,
+                                       OMX_TRUE,
+                                       8);
+        pVideoDec->bIsPowerControl = OMX_TRUE;
+    }
 
     Rkvpu_OMX_DebugSwitchfromPropget(pRockchipComponent);
 
@@ -1234,6 +1244,10 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentConstructor(OMX_HANDLETYPE hComponent, OMX_S
     pVideoDec->bGtsTest = OMX_FALSE;
     pVideoDec->fp_in = NULL;
     pVideoDec->b4K_flags = OMX_FALSE;
+    pVideoDec->power_fd = -1;
+    pVideoDec->bIsPowerControl = OMX_FALSE;
+    pVideoDec->bIsHevc = 0;
+    pVideoDec->bIs10bit = OMX_FALSE;
     pRockchipComponent->bMultiThreadProcess = OMX_TRUE;
     pRockchipComponent->codecType = HW_VIDEO_DEC_CODEC;
 
@@ -1428,6 +1442,7 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentDeInit(OMX_HANDLETYPE hComponent)
     OMX_COMPONENTTYPE     *pOMXComponent = NULL;
     ROCKCHIP_OMX_BASECOMPONENT *pRockchipComponent = NULL;
     ROCKCHIP_OMX_BASEPORT      *pRockchipPort = NULL;
+    ROCKCHIP_OMX_BASEPORT      *pInputPort = NULL;
     RKVPU_OMX_VIDEODEC_COMPONENT *pVideoDec = NULL;
     int                    i = 0;
 
@@ -1460,6 +1475,21 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentDeInit(OMX_HANDLETYPE hComponent)
         property_set("sys.gpu.frames_num_of_sectionKD", "0");
         property_set("sys.gpu.frames_num_to_skip_KD", "0");
         pVideoDec->b4K_flags = OMX_FALSE;
+    }
+    pInputPort = &pRockchipComponent->pRockchipPort[INPUT_PORT_INDEX];
+    if (pVideoDec->bIsPowerControl == OMX_TRUE) {
+        if (pVideoDec->bIs10bit) {
+            Rockchip_OSAL_PowerControl(pRockchipComponent, 3840, 2160, pVideoDec->bIsHevc,
+                                           pInputPort->portDefinition.format.video.xFramerate,
+                                           OMX_FALSE,
+                                           10);
+        } else {
+            Rockchip_OSAL_PowerControl(pRockchipComponent, 3840, 2160, pVideoDec->bIsHevc,
+                                           pInputPort->portDefinition.format.video.xFramerate,
+                                           OMX_FALSE,
+                                           8);
+        }
+        pVideoDec->bIsPowerControl = OMX_FALSE;
     }
 
     Rockchip_OSAL_Free(pVideoDec);

@@ -122,6 +122,13 @@ OMX_COLOR_FORMATTYPE Rockchip_OSAL_CheckFormat(ROCKCHIP_OMX_BASECOMPONENT *pRock
 OMX_ERRORTYPE Rockchip_OSAL_getANBHandle(OMX_IN OMX_PTR handle, OMX_OUT OMX_PTR planes);
 OMX_U32 Get_Video_HorAlign(OMX_VIDEO_CODINGTYPE codecId, OMX_U32 width, OMX_U32 height);
 OMX_U32 Get_Video_VerAlign(OMX_VIDEO_CODINGTYPE codecId, OMX_U32 height);
+OMX_ERRORTYPE Rockchip_OSAL_PowerControl(ROCKCHIP_OMX_BASECOMPONENT *pRockchipComponent,
+                                         int32_t width,
+                                         int32_t height,
+                                         int32_t mHevc,
+                                         int32_t frameRate,
+                                         OMX_BOOL mFlag,
+                                         int bitDepth);
 #ifdef __cplusplus
 }
 #endif

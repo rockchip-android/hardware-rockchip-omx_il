@@ -126,6 +126,11 @@ typedef struct _RKVPU_OMX_VIDEODEC_COMPONENT {
     OMX_RK_EXT_COLORSPACE extColorSpace;
     OMX_RK_EXT_DYNCRANGE extDyncRange;
 
+    /* for power control */
+	OMX_S32 power_fd;
+	OMX_BOOL bIsPowerControl;
+	OMX_S32 bIsHevc;
+	OMX_BOOL bIs10bit;
 #ifdef WRITR_FILE
     FILE *fp_out;
 #endif
