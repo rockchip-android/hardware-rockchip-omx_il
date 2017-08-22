@@ -1091,7 +1091,6 @@ OMX_ERRORTYPE omx_open_vpudec_context(RKVPU_OMX_VIDEODEC_COMPONENT *pVideoDec)
         omx_dbg("used old version lib");
         pVideoDec->rkapi_hdl = dlopen("/system/lib/librk_vpuapi.so", RTLD_LAZY);
         if (pVideoDec->rkapi_hdl == NULL) {
-
             omx_err("dll open fail system/lib/librk_vpuapi.so");
             return OMX_ErrorHardware;
         }
@@ -1119,6 +1118,10 @@ OMX_ERRORTYPE Rkvpu_Dec_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
     VpuCodecContext_t *p_vpu_ctx = (VpuCodecContext_t *)Rockchip_OSAL_Malloc(sizeof(VpuCodecContext_t));
     if (pRockchipComponent->rkversion != NULL) {
         omx_err("omx decoder info : %s",pRockchipComponent->rkversion);
+    }
+    if (pVideoDec->bDRMPlayerMode == OMX_TRUE) {
+        omx_info("drm player mode is true, force to mpp");
+        property_set("use_mpp_mode","1");
     }
     Rockchip_OSAL_Memset((void*)p_vpu_ctx, 0, sizeof(VpuCodecContext_t));
     if (omx_open_vpudec_context(pVideoDec)) {
@@ -1202,8 +1205,8 @@ OMX_ERRORTYPE Rkvpu_Dec_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
 
     if (p_vpu_ctx->width > 1920 && p_vpu_ctx->height > 1080) {
         //add for kodi
-        //property_set("sys.gpu.frames_num_of_sectionKD", "4");
-       // property_set("sys.gpu.frames_num_to_skip_KD", "3");
+        property_set("sys.gpu.frames_num_of_sectionKD", "4");
+        property_set("sys.gpu.frames_num_to_skip_KD", "3");
         pVideoDec->b4K_flags = OMX_TRUE;
     }
 
@@ -1595,8 +1598,8 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentDeInit(OMX_HANDLETYPE hComponent)
     }
     if (pVideoDec->b4K_flags == OMX_TRUE) {
         //add for kodi
-    //    property_set("sys.gpu.frames_num_of_sectionKD", "0");
-     //   property_set("sys.gpu.frames_num_to_skip_KD", "0");
+        property_set("sys.gpu.frames_num_of_sectionKD", "0");
+        property_set("sys.gpu.frames_num_to_skip_KD", "0");
         pVideoDec->b4K_flags = OMX_FALSE;
     }
     pInputPort = &pRockchipComponent->pRockchipPort[INPUT_PORT_INDEX];
@@ -1613,6 +1616,11 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentDeInit(OMX_HANDLETYPE hComponent)
                                            8);
         }
         pVideoDec->bIsPowerControl = OMX_FALSE;
+    }
+
+    if (pVideoDec->bDRMPlayerMode == OMX_TRUE) {
+        omx_info("drm player mode is true, force to mpp");
+        property_set("use_mpp_mode","0");
     }
 
     Rockchip_OSAL_Free(pVideoDec);
