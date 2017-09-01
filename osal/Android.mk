@@ -23,7 +23,7 @@ LOCAL_SRC_FILES := \
 LOCAL_PRELINK_MODULE := false
 LOCAL_MODULE := libRkOMX_OSAL
 
-LOCAL_SHARED_LIBRARIES := libhardware
+LOCAL_SHARED_LIBRARIES := libhardware liblog
 LOCAL_STATIC_LIBRARIES := liblog libcutils
 
 ifeq ($(BOARD_VERSION_LOW),true)
@@ -46,6 +46,7 @@ LOCAL_C_INCLUDES := $(ROCKCHIP_OMX_INC)/khronos \
 	$(ROCKCHIP_OMX_COMPONENT)/video/enc \
 	$(TOP)/frameworks/native/include/media/hardware \
 	$(TOP)/frameworks/native/include/media/openmax \
+	$(TOP)/frameworks/native/libs/arect/include \
         $(TOP)/system/core/libion/include \
         $(TOP)/system/core/libion/kernel-headers \
 	$(TOP)/hardware/rockchip/libgralloc \

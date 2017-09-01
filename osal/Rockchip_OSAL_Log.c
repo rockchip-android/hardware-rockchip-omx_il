@@ -30,6 +30,7 @@
 #include "Rockchip_OSAL_Log.h"
 #include <cutils/properties.h>
 #include <string.h>
+#include <android/log.h>
 
 void _Rockchip_OSAL_Log(ROCKCHIP_LOG_LEVEL logLevel, const char *tag, const char *msg, ...)
 {

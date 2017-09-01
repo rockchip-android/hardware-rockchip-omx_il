@@ -12,7 +12,7 @@ LOCAL_MODULE := libRkOMX_Basecomponent
 LOCAL_CFLAGS :=
 
 LOCAL_STATIC_LIBRARIES := libRkOMX_OSAL
-LOCAL_SHARED_LIBRARIES := libcutils libutils
+LOCAL_SHARED_LIBRARIES := libcutils libutils liblog
 
 LOCAL_C_INCLUDES := $(ROCKCHIP_OMX_INC)/khronos \
 	$(ROCKCHIP_OMX_INC)/rockchip \
@@ -33,7 +33,7 @@ LOCAL_MODULE := libRkOMX_Resourcemanager
 LOCAL_CFLAGS :=
 
 LOCAL_STATIC_LIBRARIES := libRkOMX_OSAL
-LOCAL_SHARED_LIBRARIES := libcutils libutils
+LOCAL_SHARED_LIBRARIES := libcutils libutils liblog
 
 LOCAL_C_INCLUDES := $(ROCKCHIP_OMX_INC)/khronos \
 	$(ROCKCHIP_OMX_INC)/rockchip \
