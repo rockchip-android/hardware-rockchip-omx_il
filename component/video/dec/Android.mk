@@ -12,6 +12,7 @@ LOCAL_SRC_FILES := \
 LOCAL_MODULE := libomxvpu_dec
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE_TAGS := optional
+LOCAL_PROPRIETARY_MODULE := true
 
 LOCAL_C_INCLUDES := $(ROCKCHIP_OMX_INC)/khronos \
 	$(ROCKCHIP_OMX_INC)/rockchip \
