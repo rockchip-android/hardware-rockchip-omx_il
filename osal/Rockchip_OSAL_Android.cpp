@@ -637,12 +637,15 @@ OMX_ERRORTYPE Rockchip_OSAL_SetANBParameter(
             if (pVideoDec->bIsANBEnabled == OMX_TRUE) {
                 pRockchipPort->bufferProcessType = BUFFER_SHARE;
                 pRockchipPort->portDefinition.nBufferCountActual = 22;
+                pRockchipPort->portDefinition.nBufferCountMin = 18;
                 if (pRockchipPort->portDefinition.format.video.nFrameWidth 
                         * pRockchipPort->portDefinition.format.video.nFrameHeight > 1920 * 1088) {
                     pRockchipPort->portDefinition.nBufferCountActual = 14;
+                    pRockchipPort->portDefinition.nBufferCountMin = 10;
                 }
                 if (pRockchipPort->portDefinition.format.video.nFrameWidth <= 1280) {
                     pRockchipPort->portDefinition.nBufferCountActual = 25;
+                    pRockchipPort->portDefinition.nBufferCountMin = 21;
                 }
                 pRockchipPort->portDefinition.format.video.eColorFormat = (OMX_COLOR_FORMATTYPE)HAL_PIXEL_FORMAT_YCrCb_NV12;
                 omx_trace("OMX_IndexParamEnableAndroidBuffers & bufferProcessType change to BUFFER_SHARE");
