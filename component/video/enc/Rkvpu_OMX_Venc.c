@@ -442,11 +442,12 @@ OMX_ERRORTYPE Rkvpu_ProcessStoreMetaData(OMX_COMPONENTTYPE *pOMXComponent, OMX_B
         OMX_COLOR_FORMATTYPE omx_format = 0;
         OMX_U32 res;
 
-        if (pInputBuffer->nFilledLen != 8) {
+        if (pInputBuffer->nFilledLen != 8 && pInputBuffer->nFilledLen != 12) {
             omx_info("MetaData buffer is wrong size! "
-                              "(got %lu bytes, expected 8)", pInputBuffer->nFilledLen);
+                              "(got %lu bytes, expected 8 or 12)", pInputBuffer->nFilledLen);
             return OMX_ErrorBadParameter;
         }
+
         if (Rockchip_OSAL_GetInfoFromMetaData(pInputBuffer->pBuffer, &pGrallocHandle)) {
             return OMX_ErrorBadParameter;
         }
@@ -1160,7 +1161,7 @@ OMX_ERRORTYPE ConvertOmxHevcLevel2HalHevcLevel(
 
 OMX_ERRORTYPE omx_open_vpuenc_context(RKVPU_OMX_VIDEOENC_COMPONENT *pVideoEnc)
 {
-    pVideoEnc->rkapi_hdl = dlopen("/system/lib/libvpu.so", RTLD_LAZY | RTLD_GLOBAL);
+    pVideoEnc->rkapi_hdl = dlopen("libvpu.so", RTLD_LAZY | RTLD_GLOBAL);
     if (pVideoEnc->rkapi_hdl == NULL) {
         return OMX_ErrorHardware;
     }
@@ -1169,9 +1170,9 @@ OMX_ERRORTYPE omx_open_vpuenc_context(RKVPU_OMX_VIDEOENC_COMPONENT *pVideoEnc)
         dlclose(pVideoEnc->rkapi_hdl);
         pVideoEnc->rkapi_hdl = NULL;
         omx_dbg("used old version lib");
-        pVideoEnc->rkapi_hdl = dlopen("/system/lib/librk_vpuapi.so", RTLD_LAZY | RTLD_GLOBAL);
+        pVideoEnc->rkapi_hdl = dlopen("librk_vpuapi.so", RTLD_LAZY | RTLD_GLOBAL);
         if (pVideoEnc->rkapi_hdl == NULL) {
-            omx_err("dll open fail system/lib/librk_vpuapi.so");
+            omx_err("dll open fail librk_vpuapi.so");
             return OMX_ErrorHardware;
         }
         pVideoEnc->rkvpu_open_cxt = (OMX_S32 (*)(VpuCodecContext_t **ctx))dlsym(pVideoEnc->rkapi_hdl, "vpu_open_context");
