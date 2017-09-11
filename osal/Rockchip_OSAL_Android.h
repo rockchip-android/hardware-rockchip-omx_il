@@ -129,6 +129,8 @@ OMX_ERRORTYPE Rockchip_OSAL_PowerControl(ROCKCHIP_OMX_BASECOMPONENT *pRockchipCo
                                          int32_t frameRate,
                                          OMX_BOOL mFlag,
                                          int bitDepth);
+OMX_U32 Rockchip_OSAL_GetVideoNativeMetaSize();
+
 #ifdef __cplusplus
 }
 #endif

@@ -442,7 +442,7 @@ OMX_ERRORTYPE Rkvpu_ProcessStoreMetaData(OMX_COMPONENTTYPE *pOMXComponent, OMX_B
         OMX_COLOR_FORMATTYPE omx_format = 0;
         OMX_U32 res;
 
-        if (pInputBuffer->nFilledLen != 8 && pInputBuffer->nFilledLen != 12) {
+        if (pInputBuffer->nFilledLen != Rockchip_OSAL_GetVideoNativeMetaSize()) {
             omx_info("MetaData buffer is wrong size! "
                               "(got %lu bytes, expected 8 or 12)", pInputBuffer->nFilledLen);
             return OMX_ErrorBadParameter;

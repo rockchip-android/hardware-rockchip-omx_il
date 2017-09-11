@@ -527,11 +527,11 @@ OMX_PTR Rockchip_OSAL_SharedMemory_Alloc(OMX_HANDLETYPE handle, OMX_U32 size, ME
             goto EXIT;
         }
         omx_err("security alloc buff 0x%x", phys_arg.phy_addr);
-        pElement->mapAddr = (OMX_PTR)phys_arg.phy_addr;
+        pElement->mapAddr = (OMX_PTR)((__u64)phys_arg.phy_addr);
         pElement->allocSize = size;
         pElement->ion_hdl = ion_hdl;
         pElement->pNextMemory = NULL;
-        pBuffer = (OMX_PTR)phys_arg.phy_addr;
+        pBuffer = (OMX_PTR)((__u64)phys_arg.phy_addr);
         break;
     case SYSTEM_MEMORY:
         mask =  ION_HEAP(ION_VMALLOC_HEAP_ID);;

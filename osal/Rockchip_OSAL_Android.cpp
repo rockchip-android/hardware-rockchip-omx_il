@@ -1245,6 +1245,10 @@ OMX_COLOR_FORMATTYPE Rockchip_OSAL_CheckFormat(
     return eColorFormat;
 }
 
+OMX_U32 Rockchip_OSAL_GetVideoNativeMetaSize() {
+    return sizeof(VideoNativeMetadata);
+}
+
 #ifdef __cplusplus
 }
 #endif
