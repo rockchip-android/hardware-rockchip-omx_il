@@ -1079,7 +1079,7 @@ EXIT:
 
 OMX_ERRORTYPE omx_open_vpudec_context(RKVPU_OMX_VIDEODEC_COMPONENT *pVideoDec)
 {
-    pVideoDec->rkapi_hdl = dlopen("/system/lib/libvpu.so", RTLD_LAZY);
+    pVideoDec->rkapi_hdl = dlopen("libvpu.so", RTLD_LAZY);
     pVideoDec->bOld_api = OMX_FALSE;
     if (pVideoDec->rkapi_hdl == NULL) {
         return OMX_ErrorHardware;
@@ -1089,9 +1089,9 @@ OMX_ERRORTYPE omx_open_vpudec_context(RKVPU_OMX_VIDEODEC_COMPONENT *pVideoDec)
         dlclose(pVideoDec->rkapi_hdl);
         pVideoDec->rkapi_hdl = NULL;
         omx_dbg("used old version lib");
-        pVideoDec->rkapi_hdl = dlopen("/system/lib/librk_vpuapi.so", RTLD_LAZY);
+        pVideoDec->rkapi_hdl = dlopen("librk_vpuapi.so", RTLD_LAZY);
         if (pVideoDec->rkapi_hdl == NULL) {
-            omx_err("dll open fail system/lib/librk_vpuapi.so");
+            omx_err("dll open fail librk_vpuapi.so");
             return OMX_ErrorHardware;
         }
         pVideoDec->rkvpu_open_cxt = (OMX_S32 (*)(VpuCodecContext_t **ctx))dlsym(pVideoDec->rkapi_hdl, "vpu_open_context");
