@@ -36,7 +36,7 @@
 #include "OMX_Video.h"
 #include "vpu_api.h"
 
-#define MAX_VIDEO_INPUTBUFFER_NUM           6
+#define MAX_VIDEO_INPUTBUFFER_NUM           4
 #define MAX_VIDEO_OUTPUTBUFFER_NUM          2
 
 #define DEFAULT_FRAME_WIDTH                 1920
