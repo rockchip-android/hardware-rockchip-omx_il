@@ -4,6 +4,11 @@ include $(CLEAR_VARS)
 ifeq ($(PLATFORM_VERSION),4.4.4) 
 BOARD_VERSION_LOW := true
 endif
+
+ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 8.0)))
+LOCAL_CFLAGS += -DAVS80
+endif
+
 LOCAL_MODULE_TAGS := optional
 
 LOCAL_SRC_FILES := \

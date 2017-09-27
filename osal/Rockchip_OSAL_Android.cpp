@@ -617,7 +617,9 @@ OMX_ERRORTYPE Rockchip_OSAL_SetANBParameter(
         if (pVideoDec->bStoreMetaData != OMX_TRUE) {
             pVideoDec->bIsANBEnabled = pANBParams->enable;
             pRockchipPort->portDefinition.nBufferCountActual = 16;
+#ifdef AVS80
             pRockchipPort->portDefinition.nBufferCountMin = 14;
+#endif
             pRockchipPort->portDefinition.format.video.eColorFormat = (OMX_COLOR_FORMATTYPE)HAL_PIXEL_FORMAT_YCrCb_NV12;
             omx_trace("OMX_IndexParamEnableAndroidBuffers set buffcount %d", pRockchipPort->portDefinition.nBufferCountActual);
             /*
@@ -637,15 +639,21 @@ OMX_ERRORTYPE Rockchip_OSAL_SetANBParameter(
             if (pVideoDec->bIsANBEnabled == OMX_TRUE) {
                 pRockchipPort->bufferProcessType = BUFFER_SHARE;
                 pRockchipPort->portDefinition.nBufferCountActual = 22;
+#ifdef AVS80
                 pRockchipPort->portDefinition.nBufferCountMin = 18;
+#endif
                 if (pRockchipPort->portDefinition.format.video.nFrameWidth 
                         * pRockchipPort->portDefinition.format.video.nFrameHeight > 1920 * 1088) {
                     pRockchipPort->portDefinition.nBufferCountActual = 14;
+#ifdef AVS80
                     pRockchipPort->portDefinition.nBufferCountMin = 10;
+#endif
                 }
                 if (pRockchipPort->portDefinition.format.video.nFrameWidth <= 1280) {
                     pRockchipPort->portDefinition.nBufferCountActual = 25;
+#ifdef AVS80
                     pRockchipPort->portDefinition.nBufferCountMin = 21;
+#endif
                 }
                 pRockchipPort->portDefinition.format.video.eColorFormat = (OMX_COLOR_FORMATTYPE)HAL_PIXEL_FORMAT_YCrCb_NV12;
                 omx_trace("OMX_IndexParamEnableAndroidBuffers & bufferProcessType change to BUFFER_SHARE");
@@ -1245,9 +1253,11 @@ OMX_COLOR_FORMATTYPE Rockchip_OSAL_CheckFormat(
     return eColorFormat;
 }
 
+#ifdef AVS80
 OMX_U32 Rockchip_OSAL_GetVideoNativeMetaSize() {
     return sizeof(VideoNativeMetadata);
 }
+#endif
 
 #ifdef __cplusplus
 }

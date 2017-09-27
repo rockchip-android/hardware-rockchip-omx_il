@@ -53,4 +53,8 @@ ifeq ($(OMX_USE_DRM), true)
 LOCAL_SHARED_LIBRARIES += librga
 endif
 
+ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 8.0)))
+LOCAL_CFLAGS += -DAVS80
+endif
+
 include $(BUILD_SHARED_LIBRARY)
