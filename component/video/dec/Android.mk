@@ -4,6 +4,11 @@ include $(CLEAR_VARS)
 ifeq ($(PLATFORM_VERSION),4.4.4)
 BOARD_VERSION_LOW := true
 endif
+
+ifeq (1,$(strip $(shell expr $(PLATFORM_VERSION) \>= 8.0)))
+LOCAL_CFLAGS += -DAVS80
+endif
+
 LOCAL_SRC_FILES := \
 	Rkvpu_OMX_VdecControl.c \
 	Rkvpu_OMX_Vdec.c \

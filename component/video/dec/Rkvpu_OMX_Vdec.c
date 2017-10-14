@@ -572,6 +572,14 @@ OMX_BOOL Rkvpu_Post_OutputFrame(OMX_COMPONENTTYPE *pOMXComponent)
             pVideoDec->maxCount++;
             omx_trace("pVideoDec 0x%x numInOmxAl %d", pVideoDec, numInOmxAl);
         }
+
+#ifdef AVS80
+        if (pVideoDec->nCropWidth != pframe->DisplayWidth || pVideoDec->nCropHeight != pframe->DisplayHeight) {
+               pVideoDec->nCropWidth = pframe->DisplayWidth;
+               pVideoDec->nCropHeight = pframe->DisplayHeight;
+               pRockchipComponent->pCallbacks->EventHandler((OMX_HANDLETYPE)pOMXComponent,pRockchipComponent->callbackData,OMX_EventPortSettingsChanged,OUTPUT_PORT_INDEX,OMX_IndexConfigCommonOutputCrop,NULL);
+        }
+#endif
         if (dec_ret < 0) {
             if (dec_ret == VPU_API_EOS_STREAM_REACHED) {
                 outputUseBuffer->dataLen = 0;
@@ -641,7 +649,10 @@ OMX_BOOL Rkvpu_Post_OutputFrame(OMX_COMPONENTTYPE *pOMXComponent)
 
                 pInputPort->newPortDefinition.format.video.nStride         = Get_Video_HorAlign(pVideoDec->codecId, pframe->FrameWidth, pframe->FrameHeight);
                 pInputPort->newPortDefinition.format.video.nSliceHeight    = Get_Video_VerAlign(pVideoDec->codecId, pframe->FrameHeight);
-
+#ifdef AVS80
+                pVideoDec->nCropWidth = Get_Video_HorAlign(pVideoDec->codecId, pframe->FrameWidth, pframe->FrameHeight);
+                pVideoDec->nCropHeight = Get_Video_VerAlign(pVideoDec->codecId, pframe->FrameHeight);
+#endif
                 Rkvpu_ResolutionUpdate(pOMXComponent);
                 pRockchipComponent->pCallbacks->EventHandler((OMX_HANDLETYPE)pOMXComponent,
                                                              pRockchipComponent->callbackData, OMX_EventPortSettingsChanged,
