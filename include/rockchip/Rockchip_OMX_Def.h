@@ -73,6 +73,14 @@ typedef struct _ROCKCHIP_OMX_PRIORITYMGMTTYPE {
     OMX_U32 nGroupID;
 } ROCKCHIP_OMX_PRIORITYMGMTTYPE;
 
+/*set when wfd*/
+typedef struct _ROCKCHIP_OMX_WFD {
+    OMX_U32 nSize;
+    OMX_VERSIONTYPE nVersion;
+    OMX_BOOL bEnable;
+}ROCKCHIP_OMX_WFD;
+
+
 typedef struct _OMX_VIDEO_PARAMS_EXTENDED {
     OMX_U32 nSize;
     OMX_VERSIONTYPE nVersion;
@@ -106,6 +114,8 @@ typedef enum _ROCKCHIP_OMX_INDEXTYPE {
     /* prepend SPS/PPS to I/IDR for H.264 Encoder */
 #define ROCKCHIP_INDEX_PARAM_PREPEND_SPSPPS_TO_IDR "OMX.google.android.index.prependSPSPPSToIDRFrames"
     OMX_IndexParamPrependSPSPPSToIDR        = 0x7F000015,
+#define ROCKCHIP_INDEX_PARAM_RKWFD "OMX.rk.index.encoder.wifidisplay"
+    OMX_IndexRkEncExtendedWfdState = 0x7F000018,
 
 #define ROCKCHIP_INDEX_PREPARE_ADAPTIVE_PLAYBACK  "OMX.google.android.index.prepareForAdaptivePlayback"
     OMX_IndexParamprepareForAdaptivePlayback       = 0x7F000016,

@@ -412,7 +412,7 @@ OMX_ERRORTYPE Rkvpu_ProcessStoreMetaData(OMX_COMPONENTTYPE *pOMXComponent, OMX_B
     OMX_PTR pGrallocHandle;
     *len = 0;
     *aPhy_address = 0;
-    if (!Rockchip_OSAL_GetInfoRkWfdMetaData(pInputBuffer->pBuffer, &pGrallocHandle)) {
+    if (!Rockchip_OSAL_GetInfoRkWfdMetaData(pVideoEnc->bRkWFD, pInputBuffer->pBuffer, &pGrallocHandle)) {
         if (!((ROCKCHIP_OMX_COLOR_FORMATTYPE)pInPort->portDefinition.format.video.eColorFormat == OMX_COLOR_FormatAndroidOpaque)) {
             omx_info("Error colorformat != OMX_COLOR_FormatAndroidOpaque");
         }
@@ -1621,6 +1621,7 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentConstructor(OMX_HANDLETYPE hComponent, OMX_S
     pVideoEnc->configChange = OMX_FALSE;
     pVideoEnc->bStoreMetaData = OMX_FALSE;
     pVideoEnc->bPrependSpsPpsToIdr = OMX_FALSE;
+    pVideoEnc->bRkWFD = OMX_FALSE;
     pVideoEnc->quantization.nQpI = 4; // I frame quantization parameter
     pVideoEnc->quantization.nQpP = 5; // P frame quantization parameter
     pVideoEnc->quantization.nQpB = 5; // B frame quantization parameter

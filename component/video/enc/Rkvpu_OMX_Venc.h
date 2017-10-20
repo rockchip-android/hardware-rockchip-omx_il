@@ -88,6 +88,8 @@ typedef struct _RKVPU_OMX_VIDEOENC_COMPONENT {
 
     OMX_BOOL bPrependSpsPpsToIdr;
 
+    OMX_BOOL bRkWFD;
+
     VpuCodecContext_t *vpu_ctx;
 
     void *rga_ctx;

@@ -1458,6 +1458,16 @@ OMX_ERRORTYPE Rkvpu_OMX_SetParameter(
     }
     break;
 
+    case OMX_IndexRkEncExtendedWfdState: {
+        RKVPU_OMX_VIDEOENC_COMPONENT    *pVideoEnc = NULL;
+        pVideoEnc = (RKVPU_OMX_VIDEOENC_COMPONENT *)pRockchipComponent->hComponentHandle;
+        ROCKCHIP_OMX_WFD *pRkWFD = (ROCKCHIP_OMX_WFD*)ComponentParameterStructure;
+        pVideoEnc->bRkWFD = pRkWFD->bEnable;
+        omx_trace("OMX_IndexRkEncExtendedWfdState set as:%d",pRkWFD->bEnable);
+        ret = OMX_ErrorNone;
+    }
+    break;
+
     case OMX_IndexParamStandardComponentRole: {
         OMX_PARAM_COMPONENTROLETYPE *pComponentRole = (OMX_PARAM_COMPONENTROLETYPE*)ComponentParameterStructure;
 
@@ -1814,6 +1824,7 @@ OMX_ERRORTYPE Rkvpu_OMX_GetExtensionIndex(
     ROCKCHIP_OMX_BASECOMPONENT *pRockchipComponent = NULL;
 
     FunctionIn();
+    omx_trace("cParameterName:%s",cParameterName);
 
     if (hComponent == NULL) {
         ret = OMX_ErrorBadParameter;
@@ -1846,6 +1857,10 @@ OMX_ERRORTYPE Rkvpu_OMX_GetExtensionIndex(
         goto EXIT;
     } else if (Rockchip_OSAL_Strcmp(cParameterName, ROCKCHIP_INDEX_PARAM_PREPEND_SPSPPS_TO_IDR) == 0) {
         *pIndexType = (OMX_INDEXTYPE)OMX_IndexParamPrependSPSPPSToIDR;
+        ret = OMX_ErrorNone;
+        goto EXIT;
+    } else if (!Rockchip_OSAL_Strcmp(cParameterName, ROCKCHIP_INDEX_PARAM_RKWFD)) {
+        *pIndexType = (OMX_INDEXTYPE)OMX_IndexRkEncExtendedWfdState;
         ret = OMX_ErrorNone;
         goto EXIT;
     } else if (Rockchip_OSAL_Strcmp(cParameterName, ROCKCHIP_INDEX_PARAM_EXTENDED_VIDEO) == 0) {
