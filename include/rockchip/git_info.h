@@ -1,1 +1,1 @@
-#define OMX_COMPILE_INFO      "author:  xlm\n time: Fri, 18 Aug 2017 11:51:56 +0800 git commit 404a29ea22927745eba26c04f840150c6b920c6e "
+#define OMX_COMPILE_INFO      "author:  xhr\n time: Mon, 23 Oct 2017 17:44:12 +0800 git commit 2498b1beff181b8558f2f1ab1aa0f6aec97cf24f "

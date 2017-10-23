@@ -59,6 +59,7 @@
 #ifndef VPU_API_SET_IMMEDIATE_OUT
 #define VPU_API_SET_IMMEDIATE_OUT 0x1000
 #endif
+
 typedef struct {
     OMX_RK_VIDEO_CODINGTYPE codec_id;
     OMX_VIDEO_CODINGTYPE     omx_id;
@@ -460,7 +461,7 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
             omx_info("send eos");
             pkt.nFlags |= OMX_BUFFERFLAG_EOS;
         }
-        omx_info("pkt.size:%d, pkt.dts:%lld,pkt.pts:%lld,pkt.nFlags:%d",
+        omx_trace("pkt.size:%d, pkt.dts:%lld,pkt.pts:%lld,pkt.nFlags:%d",
                           pkt.size, pkt.dts, pkt.pts, pkt.nFlags);
 
         omx_trace("decode_sendstream");
@@ -610,7 +611,7 @@ OMX_BOOL Rkvpu_Post_OutputFrame(OMX_COMPONENTTYPE *pOMXComponent)
             p_vpu_ctx->control(p_vpu_ctx, VPU_API_DEC_GET_STREAM_TOTAL, &frameNum);
             if((frameNum != 0) &&  (pVideoDec->invalidCount + 3) < frameNum)
             {
-                omx_info("HeryHeryxxxxxframeNum = %lld, invalidCount = %lld",frameNum,pVideoDec->invalidCount);
+                omx_trace("frameNum = %lld, invalidCount = %lld",frameNum,pVideoDec->invalidCount);
                 Rockchip_OSAL_MutexLock(pInputPort->secureBufferMutex);
                 ROCKCHIP_OMX_DATABUFFER *securebuffer = NULL;
                 securebuffer = (ROCKCHIP_OMX_DATABUFFER *) Rockchip_OSAL_Dequeue(&pInputPort->securebufferQ);
@@ -1448,7 +1449,9 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentConstructor(OMX_HANDLETYPE hComponent, OMX_S
         Rockchip_OSAL_Memset(pRockchipPort->portDefinition.format.video.cMIMEType, 0, MAX_OMX_MIMETYPE_SIZE);
         Rockchip_OSAL_Strcpy(pRockchipPort->portDefinition.format.video.cMIMEType, "video/avc");
         pVideoDec->codecId = OMX_VIDEO_CodingAVC;
+#ifdef HAVE_L1_SVP_MODE
         pVideoDec->bDRMPlayerMode = OMX_TRUE;
+#endif
         pRockchipPort->portDefinition.format.video.eCompressionFormat = OMX_VIDEO_CodingAVC;
 
     } else if (!strcmp(componentName, RK_OMX_COMPONENT_MPEG4_DEC)) {
@@ -1461,7 +1464,9 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentConstructor(OMX_HANDLETYPE hComponent, OMX_S
         Rockchip_OSAL_Memset(pRockchipPort->portDefinition.format.video.cMIMEType, 0, MAX_OMX_MIMETYPE_SIZE);
         Rockchip_OSAL_Strcpy(pRockchipPort->portDefinition.format.video.cMIMEType, "video/mp4v-es");
         pVideoDec->codecId = OMX_VIDEO_CodingMPEG4;
+#ifdef HAVE_L1_SVP_MODE
         pVideoDec->bDRMPlayerMode = OMX_TRUE;
+#endif
         pRockchipPort->portDefinition.format.video.eCompressionFormat =  OMX_VIDEO_CodingMPEG4;
     } else if (!strcmp(componentName, RK_OMX_COMPONENT_H263_DEC)) {
         Rockchip_OSAL_Memset(pRockchipPort->portDefinition.format.video.cMIMEType, 0, MAX_OMX_MIMETYPE_SIZE);
@@ -1483,7 +1488,9 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentConstructor(OMX_HANDLETYPE hComponent, OMX_S
         Rockchip_OSAL_Memset(pRockchipPort->portDefinition.format.video.cMIMEType, 0, MAX_OMX_MIMETYPE_SIZE);
         Rockchip_OSAL_Strcpy(pRockchipPort->portDefinition.format.video.cMIMEType, "video/mpeg2");
         pVideoDec->codecId = OMX_VIDEO_CodingMPEG2;
+#ifdef HAVE_L1_SVP_MODE
         pVideoDec->bDRMPlayerMode = OMX_TRUE;
+#endif
         pRockchipPort->portDefinition.format.video.eCompressionFormat = OMX_VIDEO_CodingMPEG2;
     } else if (!strcmp(componentName, RK_OMX_COMPONENT_RMVB_DEC)) {
         Rockchip_OSAL_Memset(pRockchipPort->portDefinition.format.video.cMIMEType, 0, MAX_OMX_MIMETYPE_SIZE);
@@ -1515,7 +1522,9 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentConstructor(OMX_HANDLETYPE hComponent, OMX_S
         Rockchip_OSAL_Memset(pRockchipPort->portDefinition.format.video.cMIMEType, 0, MAX_OMX_MIMETYPE_SIZE);
         Rockchip_OSAL_Strcpy(pRockchipPort->portDefinition.format.video.cMIMEType, "video/hevc");
         pVideoDec->codecId = OMX_VIDEO_CodingHEVC;
+#ifdef HAVE_L1_SVP_MODE
         pVideoDec->bDRMPlayerMode = OMX_TRUE;
+#endif
 #ifndef LOW_VRESION
         pRockchipPort->portDefinition.format.video.eCompressionFormat = OMX_VIDEO_CodingHEVC;
 #else
@@ -1545,14 +1554,18 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentConstructor(OMX_HANDLETYPE hComponent, OMX_S
         Rockchip_OSAL_Memset(pRockchipPort->portDefinition.format.video.cMIMEType, 0, MAX_OMX_MIMETYPE_SIZE);
         Rockchip_OSAL_Strcpy(pRockchipPort->portDefinition.format.video.cMIMEType, "video/x-vnd.on2.vp9");
         pVideoDec->codecId = OMX_VIDEO_CodingVP9;
+#ifdef HAVE_L1_SVP_MODE
         pVideoDec->bDRMPlayerMode = OMX_TRUE;
+#endif
         pRockchipPort->portDefinition.format.video.eCompressionFormat = OMX_VIDEO_CodingVP9;
     } else if (!strcmp(componentName, RK_OMX_COMPONENT_VP8_DRM_DEC)) {
         omx_err("Rockchip_OMX_ComponentConstructor VP8 secure");
         Rockchip_OSAL_Memset(pRockchipPort->portDefinition.format.video.cMIMEType, 0, MAX_OMX_MIMETYPE_SIZE);
         Rockchip_OSAL_Strcpy(pRockchipPort->portDefinition.format.video.cMIMEType, "video/x-vnd.on2.vp8");
         pVideoDec->codecId = OMX_VIDEO_CodingVP8;
+#ifdef HAVE_L1_SVP_MODE
         pVideoDec->bDRMPlayerMode = OMX_TRUE;
+#endif
         pRockchipPort->portDefinition.format.video.eCompressionFormat = OMX_VIDEO_CodingVP8;
     } else {
         // IL client specified an invalid component name

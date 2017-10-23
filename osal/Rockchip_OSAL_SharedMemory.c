@@ -508,15 +508,21 @@ OMX_PTR Rockchip_OSAL_SharedMemory_Alloc(OMX_HANDLETYPE handle, OMX_U32 size, ME
         mask = ION_HEAP(ION_SECURE_HEAP_ID);
         flag = 0;
         omx_err("11pHandle->fd = %d,size = %d",pHandle->fd,size);
-        err = drm_alloc(pHandle->fd, size, 4096, &ion_hdl, ROCKCHIP_BO_SECURE);
-        //err = ion_alloc(pHandle->fd, size, 4096, mask, 0, (ion_user_handle_t *)&ion_hdl);
+        if(mem_type == MEMORY_TYPE_DRM){
+            err = drm_alloc(pHandle->fd, size, 4096, &ion_hdl, ROCKCHIP_BO_SECURE);
+        }else{
+            err = ion_alloc(pHandle->fd, size, 4096, mask, 0, (ion_user_handle_t *)&ion_hdl);
+        }
         if (err) {
             omx_err("ion_alloc failed with err (%d)", err);
             goto EXIT;
         }
-
-        phys_arg.handle = ion_hdl;
-        err = drm_ioctl(pHandle->fd, DRM_IOCTL_ROCKCHIP_GEM_GET_PHYS, &phys_arg);
+        if(mem_type == MEMORY_TYPE_DRM){
+            phys_arg.handle = ion_hdl;
+            err = drm_ioctl(pHandle->fd, DRM_IOCTL_ROCKCHIP_GEM_GET_PHYS, &phys_arg);
+        }else{
+            err = ion_get_phys(pHandle->fd, ion_hdl, &phys);
+        }
         if (err) {
             omx_err("failed to get phy address: %s\n", strerror(errno));
         }
@@ -526,20 +532,29 @@ OMX_PTR Rockchip_OSAL_SharedMemory_Alloc(OMX_HANDLETYPE handle, OMX_U32 size, ME
             omx_err("security alloc NULL");
             goto EXIT;
         }
-        omx_err("security alloc buff 0x%x", phys_arg.phy_addr);
-#ifdef AVS80
-        pElement->mapAddr = (OMX_PTR)((__u64)phys_arg.phy_addr);
-#else
-        pElement->mapAddr = phys_arg.phy_addr;
-#endif
+
+        if(mem_type == MEMORY_TYPE_DRM){
+            omx_err("security alloc buff 0x%x", phys_arg.phy_addr);
+        #ifdef AVS80
+            pElement->mapAddr = (OMX_PTR)((__u64)phys_arg.phy_addr);
+        #else
+            pElement->mapAddr = phys_arg.phy_addr;
+        #endif
+        }else{
+            pElement->mapAddr = phys;
+        }
         pElement->allocSize = size;
         pElement->ion_hdl = ion_hdl;
         pElement->pNextMemory = NULL;
-#ifdef AVS80
-        pBuffer = (OMX_PTR)((__u64)phys_arg.phy_addr);
-#else
-        pBuffer = phys_arg.phy_addr;
-#endif
+        if(mem_type == MEMORY_TYPE_DRM){
+        #ifdef AVS80
+            pBuffer = (OMX_PTR)((__u64)phys_arg.phy_addr);
+        #else
+            pBuffer = phys_arg.phy_addr;
+        #endif
+        }else{
+            pBuffer = phys;
+        }
         break;
     case SYSTEM_MEMORY:
         mask =  ION_HEAP(ION_VMALLOC_HEAP_ID);;

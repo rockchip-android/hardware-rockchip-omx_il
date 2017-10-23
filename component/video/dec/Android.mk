@@ -41,7 +41,11 @@ LOCAL_SHARED_LIBRARIES := libc \
 	 libhardware \
 	 libvpu \
 	 libgralloc_priv_omx 
-	
+
+ifeq ($(BOARD_WIDEVINE_OEMCRYPTO_LEVEL), 1)
+LOCAL_CFLAGS += -DHAVE_L1_SVP_MODE=ON
+endif
+
 ifeq ($(BOARD_USE_ANB), true)
 LOCAL_CFLAGS += -DUSE_ANB
 endif
