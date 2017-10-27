@@ -132,6 +132,7 @@ OMX_ERRORTYPE Rockchip_OSAL_PowerControl(ROCKCHIP_OMX_BASECOMPONENT *pRockchipCo
                                          int bitDepth);
 #ifdef AVS80
 OMX_U32 Rockchip_OSAL_GetVideoNativeMetaSize();
+OMX_U32 Rockchip_OSAL_GetVideoGrallocMetaSize();
 #endif
 
 #ifdef __cplusplus
