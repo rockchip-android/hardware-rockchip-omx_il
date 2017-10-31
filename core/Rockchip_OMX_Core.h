@@ -68,6 +68,13 @@ ROCKCHIP_EXPORT_REF OMX_API OMX_ERRORTYPE              RKOMX_GetRolesOfComponent
     OMX_INOUT OMX_U32          *pNumRoles,
     OMX_OUT   OMX_U8          **roles);
 
+#define MAX_COMPONENT_ROLE_NUM  1
+
+typedef struct _omx_core_cb_type {
+    char* compName;  // Component name
+    char* roles[MAX_COMPONENT_ROLE_NUM]; // roles played
+}omx_core_cb_type;
+
 
 #ifdef __cplusplus
 }

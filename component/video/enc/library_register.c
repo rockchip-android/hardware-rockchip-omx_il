@@ -33,6 +33,7 @@
 #include "Rockchip_OSAL_ETC.h"
 #include "library_register.h"
 #include "Rockchip_OSAL_Log.h"
+#include "RkOMX_Core.h"
 
 
 OSCL_EXPORT_REF int Rockchip_OMX_COMPONENT_Library_Register(RockchipRegisterComponentType **rockchipComponents)
@@ -42,19 +43,15 @@ OSCL_EXPORT_REF int Rockchip_OMX_COMPONENT_Library_Register(RockchipRegisterComp
     if (rockchipComponents == NULL)
         goto EXIT;
 
-    Rockchip_OSAL_Strcpy(rockchipComponents[0]->componentName, RK_OMX_COMPONENT_H264_ENC);
-    Rockchip_OSAL_Strcpy(rockchipComponents[0]->roles[0], RK_OMX_COMPONENT_H264_ENC_ROLE);
-    rockchipComponents[0]->totalRoleNum = MAX_COMPONENT_ROLE_NUM;
+    int i = 0;
+    for (i = 0;i < SIZE_OF_ENC_CORE;i++) {
+        Rockchip_OSAL_Strcpy(rockchipComponents[i]->componentName, enc_core[i].compName);
+        Rockchip_OSAL_Strcpy(rockchipComponents[i]->roles[0],enc_core[i].roles);
+        rockchipComponents[0]->totalRoleNum = MAX_COMPONENT_ROLE_NUM;
+    }
 
-    Rockchip_OSAL_Strcpy(rockchipComponents[1]->componentName, RK_OMX_COMPONENT_VP8_ENC);
-    Rockchip_OSAL_Strcpy(rockchipComponents[1]->roles[0], RK_OMX_COMPONENT_VP8_ENC_ROLE);
-    rockchipComponents[1]->totalRoleNum = MAX_COMPONENT_ROLE_NUM;
-
-    Rockchip_OSAL_Strcpy(rockchipComponents[2]->componentName, RK_OMX_COMPONENT_HEVC_ENC);
-    Rockchip_OSAL_Strcpy(rockchipComponents[2]->roles[0], RK_OMX_COMPONENT_HEVC_ENC_ROLE);
-    rockchipComponents[2]->totalRoleNum = MAX_COMPONENT_ROLE_NUM;
 EXIT:
     FunctionOut();
 
-    return MAX_COMPONENT_NUM;
+    return SIZE_OF_ENC_CORE;
 }

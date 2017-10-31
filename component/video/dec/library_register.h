@@ -30,11 +30,10 @@
 #include "Rockchip_OMX_Def.h"
 #include "OMX_Component.h"
 #include "Rockchip_OMX_Component_Register.h"
+#include "Rockchip_OMX_Core.h"
 
 
 #define OSCL_EXPORT_REF __attribute__((visibility("default")))
-#define MAX_COMPONENT_NUM       19
-#define MAX_COMPONENT_ROLE_NUM  19
 
 #define RK_OMX_COMPONENT_H264_DEC "OMX.rk.video_decoder.avc"
 #define RK_OMX_COMPONENT_H264_DRM_DEC "OMX.rk.video_decoder.avc.secure"
@@ -87,7 +86,6 @@
 #define RK_OMX_COMPONENT_VP9_DRM_DEC "OMX.rk.video_decoder.vp9.secure"
 
 #define RK_OMX_COMPONENT_VP8_DRM_DEC "OMX.rk.video_decoder.vp8.secure"
-
 
 #ifdef __cplusplus
 extern "C" {

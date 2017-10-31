@@ -30,11 +30,9 @@
 #include "Rockchip_OMX_Def.h"
 #include "OMX_Component.h"
 #include "Rockchip_OMX_Component_Register.h"
-
+#include "Rockchip_OMX_Core.h"
 
 #define OSCL_EXPORT_REF __attribute__((visibility("default")))
-#define MAX_COMPONENT_NUM       3
-#define MAX_COMPONENT_ROLE_NUM  3
 
 #define RK_OMX_COMPONENT_H264_ENC "OMX.rk.video_encoder.avc"
 #define RK_OMX_COMPONENT_H264_ENC_ROLE "video_encoder.avc"
