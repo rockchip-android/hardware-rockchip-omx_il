@@ -508,7 +508,7 @@ OMX_PTR Rockchip_OSAL_SharedMemory_Alloc(OMX_HANDLETYPE handle, OMX_U32 size, ME
         mask = ION_HEAP(ION_SECURE_HEAP_ID);
         flag = 0;
         omx_err("11pHandle->fd = %d,size = %d",pHandle->fd,size);
-        if(mem_type == MEMORY_TYPE_DRM){
+        if (mem_type == MEMORY_TYPE_DRM) {
             err = drm_alloc(pHandle->fd, size, 4096, &ion_hdl, ROCKCHIP_BO_SECURE);
         }else{
             err = ion_alloc(pHandle->fd, size, 4096, mask, 0, (ion_user_handle_t *)&ion_hdl);
@@ -533,27 +533,35 @@ OMX_PTR Rockchip_OSAL_SharedMemory_Alloc(OMX_HANDLETYPE handle, OMX_U32 size, ME
             goto EXIT;
         }
 
-        if(mem_type == MEMORY_TYPE_DRM){
+        if (mem_type == MEMORY_TYPE_DRM) {
             omx_err("security alloc buff 0x%x", phys_arg.phy_addr);
         #ifdef AVS80
             pElement->mapAddr = (OMX_PTR)((__u64)phys_arg.phy_addr);
         #else
             pElement->mapAddr = phys_arg.phy_addr;
         #endif
-        }else{
+        } else {
+        #ifdef AVS80
+            pElement->mapAddr = (OMX_PTR)((__u64)phys);
+        #else
             pElement->mapAddr = phys;
+        #endif
         }
         pElement->allocSize = size;
         pElement->ion_hdl = ion_hdl;
         pElement->pNextMemory = NULL;
-        if(mem_type == MEMORY_TYPE_DRM){
+        if(mem_type == MEMORY_TYPE_DRM) {
         #ifdef AVS80
             pBuffer = (OMX_PTR)((__u64)phys_arg.phy_addr);
         #else
             pBuffer = phys_arg.phy_addr;
         #endif
-        }else{
+        } else {
+        #ifdef AVS80
+            pBuffer = (OMX_PTR)((__u64)phys);
+        #else
             pBuffer = phys;
+        #endif
         }
         break;
     case SYSTEM_MEMORY:
