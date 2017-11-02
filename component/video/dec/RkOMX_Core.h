@@ -18,7 +18,7 @@
 #ifndef __RkOMX_Core__H
 #define __RkOMX_Core__H
 
-omx_core_cb_type dec_core[] = {
+static const omx_core_cb_type dec_core[] = {
     {
         "OMX.rk.video_decoder.avc",
         "video_decoder.avc"
@@ -116,6 +116,6 @@ omx_core_cb_type dec_core[] = {
 #endif
 };
 
-const unsigned int SIZE_OF_DEC_CORE = sizeof(dec_core) / sizeof(omx_core_cb_type);
+const unsigned int SIZE_OF_DEC_CORE = sizeof(dec_core) / sizeof(dec_core[0]);
 
 #endif  // RkOMX_Core.h
