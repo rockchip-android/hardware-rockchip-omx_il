@@ -1639,6 +1639,8 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentConstructor(OMX_HANDLETYPE hComponent, OMX_S
     pRockchipPort->portDefinition.eDomain = OMX_PortDomainVideo;
     pRockchipPort->portDefinition.format.video.nFrameWidth = DEFAULT_ENC_FRAME_WIDTH;
     pRockchipPort->portDefinition.format.video.nFrameHeight = DEFAULT_ENC_FRAME_HEIGHT;
+    pRockchipPort->portDefinition.format.video.xFramerate = DEFAULT_ENC_FRAME_FRAMERATE;
+    pRockchipPort->portDefinition.format.video.nBitrate = DEFAULT_ENC_FRAME_BITRATE;
     pRockchipPort->portDefinition.format.video.nStride = 0; /*DEFAULT_ENC_FRAME_WIDTH;*/
     pRockchipPort->portDefinition.format.video.nSliceHeight = 0;
     pRockchipPort->portDefinition.nBufferSize = DEFAULT_VIDEOENC_INPUT_BUFFER_SIZE;
@@ -1662,6 +1664,8 @@ OMX_ERRORTYPE Rockchip_OMX_ComponentConstructor(OMX_HANDLETYPE hComponent, OMX_S
     pRockchipPort->portDefinition.eDomain = OMX_PortDomainVideo;
     pRockchipPort->portDefinition.format.video.nFrameWidth = DEFAULT_ENC_FRAME_WIDTH;
     pRockchipPort->portDefinition.format.video.nFrameHeight = DEFAULT_ENC_FRAME_HEIGHT;
+    pRockchipPort->portDefinition.format.video.xFramerate = DEFAULT_ENC_FRAME_FRAMERATE;
+    pRockchipPort->portDefinition.format.video.nBitrate = DEFAULT_ENC_FRAME_BITRATE;
     pRockchipPort->portDefinition.format.video.nStride = 0; /*DEFAULT_ENC_FRAME_WIDTH;*/
     pRockchipPort->portDefinition.format.video.nSliceHeight = 0;
     pRockchipPort->portDefinition.nBufferSize = DEFAULT_VIDEOENC_OUTPUT_BUFFER_SIZE;
