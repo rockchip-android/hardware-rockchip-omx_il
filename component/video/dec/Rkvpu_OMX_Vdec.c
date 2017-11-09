@@ -648,8 +648,8 @@ OMX_BOOL Rkvpu_Post_OutputFrame(OMX_COMPONENTTYPE *pOMXComponent)
                 pInputPort->newPortDefinition.format.video.nFrameWidth = pframe->DisplayWidth;
                 pInputPort->newPortDefinition.format.video.nFrameHeight = pframe->DisplayHeight;
 
-                pInputPort->newPortDefinition.format.video.nStride         = Get_Video_HorAlign(pVideoDec->codecId, pframe->FrameWidth, pframe->FrameHeight);
-                pInputPort->newPortDefinition.format.video.nSliceHeight    = Get_Video_VerAlign(pVideoDec->codecId, pframe->FrameHeight);
+                pInputPort->newPortDefinition.format.video.nStride         = pframe->FrameWidth;
+                pInputPort->newPortDefinition.format.video.nSliceHeight    = pframe->FrameHeight;
 #ifdef AVS80
                 pVideoDec->nCropWidth = Get_Video_HorAlign(pVideoDec->codecId, pframe->FrameWidth, pframe->FrameHeight);
                 pVideoDec->nCropHeight = Get_Video_VerAlign(pVideoDec->codecId, pframe->FrameHeight);
