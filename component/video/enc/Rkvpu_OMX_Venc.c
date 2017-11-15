@@ -611,7 +611,9 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
                 aInput.buf = NULL;
             } else {
                 aInput.buf =  inputUseBuffer->bufferHeader->pBuffer + inputUseBuffer->usedDataLen;
-                aInput.bufPhyAddr = -1;
+                aInput.bufPhyAddr = 0x80000000;
+                // while bufPhyAddr < 0 && buf != NULL
+                // assign bufPhyAddr 8000000 to match rk_vpuapi to copy data from aInput.buf
             }
             aInput.size = inputUseBuffer->dataLen;
             aInput.timeUs = inputUseBuffer->timeStamp;
@@ -625,7 +627,9 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
                 aInput.buf = NULL;
             } else {
                 aInput.buf =  inputUseBuffer->bufferHeader->pBuffer + inputUseBuffer->usedDataLen;
-                aInput.bufPhyAddr = -1;
+                aInput.bufPhyAddr = 0x80000000;
+                // while bufPhyAddr < 0 && buf != NULL
+                // assign bufPhyAddr 8000000 to match rk_vpuapi to copy data from aInput.buf
             }
             aInput.size = inputUseBuffer->dataLen;
             aInput.timeUs = inputUseBuffer->timeStamp;
