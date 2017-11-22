@@ -416,24 +416,12 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
             pVideoDec->bFirstFrame = OMX_FALSE;
             if (extraFlag) {
                 ret = OMX_TRUE;
-                if (extraData && !pVideoDec->bDRMPlayerMode) {
+                if (extraData  && !pVideoDec->bDRMPlayerMode) {
                     Rockchip_OSAL_Free(extraData);
                     extraData = NULL;
                     Rkvpu_InputBufferReturn(pOMXComponent, inputUseBuffer);
                 } else if (extraData && pVideoDec->bDRMPlayerMode) {
-                    inputUseBuffer->dataValid = OMX_FALSE;
-                    ROCKCHIP_OMX_DATABUFFER * inputInValidBuffer;
-                    inputInValidBuffer = Rockchip_OSAL_Malloc(sizeof(ROCKCHIP_OMX_DATABUFFER));
-                    if(inputInValidBuffer == NULL) {
-                        omx_err("inputInValidBuffer malloc failed!");
-                        return OMX_FALSE;
-                    }
-                    inputInValidBuffer->bufferHeader = inputUseBuffer->bufferHeader;
-                    inputInValidBuffer->dataLen = inputUseBuffer->dataLen;
-                    inputInValidBuffer->timeStamp = inputUseBuffer->timeStamp;
-                    Rockchip_OSAL_MutexLock(rockchipInputPort->secureBufferMutex);
-                    Rockchip_OSAL_Queue(&rockchipInputPort->securebufferQ,inputInValidBuffer);
-                    Rockchip_OSAL_MutexUnlock(rockchipInputPort->secureBufferMutex);
+                    Rkvpu_InputBufferReturn(pOMXComponent, inputUseBuffer);
                 } else {
                     ;
                 }
@@ -487,24 +475,8 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
             controlFPS(isInput);
         }
 
+        Rkvpu_InputBufferReturn(pOMXComponent, inputUseBuffer);
 
-        if(pVideoDec->bDRMPlayerMode == OMX_TRUE){
-            inputUseBuffer->dataValid = OMX_FALSE;
-            ROCKCHIP_OMX_DATABUFFER * inputInValidBuffer;
-            inputInValidBuffer = Rockchip_OSAL_Malloc(sizeof(ROCKCHIP_OMX_DATABUFFER));
-            if(inputInValidBuffer == NULL) {
-                omx_err("inputInValidBuffer malloc failed!");
-                return OMX_FALSE;
-            }
-            inputInValidBuffer->bufferHeader = inputUseBuffer->bufferHeader;
-            inputInValidBuffer->dataLen = inputUseBuffer->dataLen;
-            inputInValidBuffer->timeStamp = inputUseBuffer->timeStamp;
-            Rockchip_OSAL_MutexLock(rockchipInputPort->secureBufferMutex);
-            Rockchip_OSAL_Queue(&rockchipInputPort->securebufferQ,inputInValidBuffer);
-            Rockchip_OSAL_MutexUnlock(rockchipInputPort->secureBufferMutex);
-        } else {
-            Rkvpu_InputBufferReturn(pOMXComponent, inputUseBuffer);
-        }
         if (pRockchipComponent->checkTimeStamp.needSetStartTimeStamp == OMX_TRUE) {
             pRockchipComponent->checkTimeStamp.needCheckStartTimeStamp = OMX_TRUE;
             pRockchipComponent->checkTimeStamp.startTimeStamp = inputUseBuffer->timeStamp;
@@ -596,24 +568,6 @@ OMX_BOOL Rkvpu_Post_OutputFrame(OMX_COMPONENTTYPE *pOMXComponent)
             omx_trace("commit fd to vpu 0x%x\n", outputUseBuffer->bufferHeader);
             Rockchip_OSAL_Fd2VpumemPool(pRockchipComponent, outputUseBuffer->bufferHeader);
             Rockchip_ResetDataBuffer(outputUseBuffer);
-        }
-
-        if (pVideoDec->bDRMPlayerMode == OMX_TRUE) {
-            int64_t frameNum = 0;
-            p_vpu_ctx->control(p_vpu_ctx, VPU_API_DEC_GET_STREAM_TOTAL, &frameNum);
-            if((frameNum != 0) &&  (pVideoDec->invalidCount + 3) < frameNum)
-            {
-                omx_trace("frameNum = %lld, invalidCount = %lld",frameNum,pVideoDec->invalidCount);
-                Rockchip_OSAL_MutexLock(pInputPort->secureBufferMutex);
-                ROCKCHIP_OMX_DATABUFFER *securebuffer = NULL;
-                securebuffer = (ROCKCHIP_OMX_DATABUFFER *) Rockchip_OSAL_Dequeue(&pInputPort->securebufferQ);
-                if(securebuffer != NULL){
-                    Rkvpu_InputBufferReturn(pOMXComponent, securebuffer);
-                    Rockchip_OSAL_Free(securebuffer);
-                    pVideoDec->invalidCount++;
-                }
-                Rockchip_OSAL_MutexUnlock(pInputPort->secureBufferMutex);
-            }
         }
 
         if ((pOutput.size > 0) && (!CHECK_PORT_BEING_FLUSHED(pOutputPort))) {
