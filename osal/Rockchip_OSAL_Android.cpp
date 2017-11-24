@@ -467,7 +467,7 @@ OMX_ERRORTYPE Rockchip_OSAL_GetANBParameter(
             goto EXIT;
         }
         pRockchipPort = &pRockchipComponent->pRockchipPort[OUTPUT_PORT_INDEX];
-        pRockchipPort->bufferProcessType = BUFFER_COPY;
+        //pRockchipPort->bufferProcessType = BUFFER_COPY;
         switch (pDescribeParams->eColorFormat) {
         case OMX_COLOR_FormatYUV420SemiPlanar: {
             OMX_U32 stride = 0;
@@ -476,7 +476,7 @@ OMX_ERRORTYPE Rockchip_OSAL_GetANBParameter(
             img->mNumPlanes = 3;
             img->mWidth = pDescribeParams->nFrameWidth;
             img->mHeight = pDescribeParams->nFrameHeight;
-            pRockchipPort->bufferProcessType = BUFFER_COPY;
+            //pRockchipPort->bufferProcessType = BUFFER_COPY;
             omx_trace("OMX_IndexParamdescribeColorFormat OMX_COLOR_FormatYUV420SemiPlanar in");
             stride = img->mWidth;
             sliceHeight = img->mHeight;
