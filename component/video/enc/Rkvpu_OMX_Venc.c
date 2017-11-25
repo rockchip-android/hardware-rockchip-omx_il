@@ -209,7 +209,7 @@ OMX_ERRORTYPE Rkvpu_ResetAllPortConfig(OMX_COMPONENTTYPE *pOMXComponent)
     Rockchip_OSAL_Strcpy(pRockchipOutputPort->portDefinition.format.video.cMIMEType, "raw/video");
     pRockchipOutputPort->portDefinition.format.video.pNativeRender = 0;
     pRockchipOutputPort->portDefinition.format.video.bFlagErrorConcealment = OMX_FALSE;
-    pRockchipOutputPort->portDefinition.format.video.eColorFormat = OMX_COLOR_FormatYUV420Planar;
+    pRockchipOutputPort->portDefinition.format.video.eColorFormat = OMX_COLOR_FormatUnused;
     pRockchipOutputPort->portDefinition.nBufferCountActual = MAX_VIDEOENC_OUTPUTBUFFER_NUM;
     pRockchipOutputPort->portDefinition.nBufferCountMin = MAX_VIDEOENC_OUTPUTBUFFER_NUM;
     pRockchipOutputPort->portDefinition.nBufferSize = DEFAULT_VIDEOENC_OUTPUT_BUFFER_SIZE;
