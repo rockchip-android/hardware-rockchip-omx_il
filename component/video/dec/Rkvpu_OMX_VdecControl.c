@@ -1324,14 +1324,6 @@ OMX_ERRORTYPE Rkvpu_OMX_GetParameter(
             portDefinition->format.video.nStride = portDefinition->format.video.nFrameWidth;
             portDefinition->format.video.nSliceHeight = portDefinition->format.video.nFrameHeight;
         }
-
-#ifdef AVS80
-        if (portIndex == OUTPUT_PORT_INDEX &&
-            pRockchipPort->bufferProcessType == BUFFER_SHARE) {
-            portDefinition->format.video.nFrameWidth = portDefinition->format.video.nStride;
-            portDefinition->format.video.nFrameHeight = portDefinition->format.video.nSliceHeight;
-        }
-#endif
     }
     break;
 #endif
@@ -1602,10 +1594,6 @@ OMX_ERRORTYPE Rkvpu_OMX_SetParameter(
         pRockchipPort->portDefinition.format.video.nStride = stride;
         pRockchipPort->portDefinition.format.video.nSliceHeight = strideheight;
         pRockchipPort->portDefinition.nBufferSize = (size > pRockchipPort->portDefinition.nBufferSize) ? size : pRockchipPort->portDefinition.nBufferSize;
-#ifdef AVS80
-        pVideoDec->nCropWidth = stride;
-        pVideoDec->nCropHeight = strideheight;
-#endif
 
         if (portIndex == INPUT_PORT_INDEX) {
             ROCKCHIP_OMX_BASEPORT *pRockchipOutputPort = &pRockchipComponent->pRockchipPort[OUTPUT_PORT_INDEX];
@@ -1824,24 +1812,6 @@ OMX_ERRORTYPE Rkvpu_OMX_GetConfig(
     }
 
     switch (nIndex) {
-#ifdef AVS80
-    case OMX_IndexConfigCommonOutputCrop:{
-        OMX_CONFIG_RECTTYPE *rectParams = (OMX_CONFIG_RECTTYPE *)pComponentConfigStructure;
-        OMX_U32 portIndex = rectParams->nPortIndex;
-        ROCKCHIP_OMX_BASEPORT *pRockchipPort = NULL;
-        pRockchipPort = &pRockchipComponent->pRockchipPort[portIndex];
-
-        if (rectParams->nPortIndex != OUTPUT_PORT_INDEX) {
-            return OMX_ErrorUndefined;
-        }
-
-        rectParams->nLeft = 0;
-        rectParams->nTop = 0;
-        rectParams->nWidth = pRockchipPort->portDefinition.format.video.nFrameWidth & (~3); //if no 4 aglin crop
-        rectParams->nHeight = pRockchipPort->portDefinition.format.video.nFrameHeight;
-    }
-    break;
-#endif
     default:
         ret = Rockchip_OMX_GetConfig(hComponent, nIndex, pComponentConfigStructure);
         break;

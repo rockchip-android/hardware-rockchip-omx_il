@@ -143,12 +143,6 @@ typedef struct _RKVPU_OMX_VIDEODEC_COMPONENT {
     OMX_BOOL bGtsTest;
     void *rkapi_hdl;
 
-#ifdef AVS80
-    /* For Crop*/
-    OMX_U32 nCropWidth;
-    OMX_U32 nCropHeight;
-#endif
-
     OMX_S32 (*rkvpu_open_cxt)(VpuCodecContext_t **ctx);
     OMX_S32 (*rkvpu_close_cxt)(VpuCodecContext_t **ctx);
 
