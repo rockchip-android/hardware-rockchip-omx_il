@@ -1076,8 +1076,6 @@ static OMX_ERRORTYPE ConvertOmxAvcLevelToAvcSpecLevel(
     AVCLevel level = AVC_LEVEL5_1;
     switch (omxLevel) {
     case OMX_VIDEO_AVCLevel1:
-        level = AVC_LEVEL1_B;
-        break;
     case OMX_VIDEO_AVCLevel1b:
         level = AVC_LEVEL1;
         break;
