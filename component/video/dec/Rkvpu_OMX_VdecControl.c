@@ -1324,6 +1324,14 @@ OMX_ERRORTYPE Rkvpu_OMX_GetParameter(
             portDefinition->format.video.nStride = portDefinition->format.video.nFrameWidth;
             portDefinition->format.video.nSliceHeight = portDefinition->format.video.nFrameHeight;
         }
+#ifdef AVS80
+        if (portIndex == OUTPUT_PORT_INDEX &&
+            pRockchipPort->bufferProcessType == BUFFER_SHARE) {
+            portDefinition->format.video.nFrameWidth = portDefinition->format.video.nStride;
+            portDefinition->format.video.nFrameHeight = portDefinition->format.video.nSliceHeight;
+        }
+#endif
+
     }
     break;
 #endif
@@ -1602,6 +1610,13 @@ OMX_ERRORTYPE Rkvpu_OMX_SetParameter(
             pRockchipOutputPort->portDefinition.format.video.nStride = stride;
             pRockchipOutputPort->portDefinition.format.video.nSliceHeight = strideheight;
 
+#ifdef AVS80
+            Rockchip_OSAL_Memset(&(pRockchipOutputPort->cropRectangle),0,sizeof(OMX_CONFIG_RECTTYPE));
+            pRockchipOutputPort->cropRectangle.nWidth = pRockchipOutputPort->portDefinition.format.video.nFrameWidth;
+            pRockchipOutputPort->cropRectangle.nHeight = pRockchipOutputPort->portDefinition.format.video.nFrameHeight;
+            pRockchipComponent->pCallbacks->EventHandler((OMX_HANDLETYPE)pOMXComponent,pRockchipComponent->callbackData,OMX_EventPortSettingsChanged,OUTPUT_PORT_INDEX,OMX_IndexConfigCommonOutputCrop,NULL);
+#endif
+
             switch ((OMX_U32)pRockchipOutputPort->portDefinition.format.video.eColorFormat) {
 
             case OMX_COLOR_FormatYUV420Planar:
@@ -1812,6 +1827,23 @@ OMX_ERRORTYPE Rkvpu_OMX_GetConfig(
     }
 
     switch (nIndex) {
+#ifdef AVS80
+    case OMX_IndexConfigCommonOutputCrop:{
+        OMX_CONFIG_RECTTYPE *rectParams = (OMX_CONFIG_RECTTYPE *)pComponentConfigStructure;
+        OMX_U32 portIndex = rectParams->nPortIndex;
+        ROCKCHIP_OMX_BASEPORT *pRockchipPort = NULL;
+        pRockchipPort = &pRockchipComponent->pRockchipPort[portIndex];
+
+        if (rectParams->nPortIndex != OUTPUT_PORT_INDEX) {
+            return OMX_ErrorUndefined;
+        }
+
+        Rockchip_OSAL_Memcpy(rectParams,&(pRockchipPort->cropRectangle),sizeof(OMX_CONFIG_RECTTYPE));
+        omx_info("rectParams:%d %d %d %d",rectParams->nLeft,rectParams->nTop,rectParams->nWidth,rectParams->nHeight);
+    }
+    break;
+#endif
+
     default:
         ret = Rockchip_OMX_GetConfig(hComponent, nIndex, pComponentConfigStructure);
         break;
