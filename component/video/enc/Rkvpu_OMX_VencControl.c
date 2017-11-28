@@ -1488,7 +1488,7 @@ OMX_ERRORTYPE Rkvpu_OMX_SetParameter(
         } else if (!Rockchip_OSAL_Strcmp((char*)pComponentRole->cRole, RK_OMX_COMPONENT_HEVC_ENC_ROLE)) {
             pRockchipComponent->pRockchipPort[OUTPUT_PORT_INDEX].portDefinition.format.video.eCompressionFormat = OMX_VIDEO_CodingHEVC;
         }else {
-            ret = OMX_ErrorBadParameter;
+            ret = OMX_ErrorInvalidComponentName;
             goto EXIT;
         }
     }
