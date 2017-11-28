@@ -1837,8 +1837,11 @@ OMX_ERRORTYPE Rkvpu_OMX_GetConfig(
         if (rectParams->nPortIndex != OUTPUT_PORT_INDEX) {
             return OMX_ErrorUndefined;
         }
-
-        Rockchip_OSAL_Memcpy(rectParams,&(pRockchipPort->cropRectangle),sizeof(OMX_CONFIG_RECTTYPE));
+        /*Avoid rectParams->nWidth and rectParams->nHeight to be set as 0*/
+        if(pRockchipPort->cropRectangle.nHeight > 0 && pRockchipPort->cropRectangle.nWidth > 0)
+            Rockchip_OSAL_Memcpy(rectParams,&(pRockchipPort->cropRectangle),sizeof(OMX_CONFIG_RECTTYPE));
+        else
+            rectParams->nWidth = rectParams->nHeight = 1;
         omx_info("rectParams:%d %d %d %d",rectParams->nLeft,rectParams->nTop,rectParams->nWidth,rectParams->nHeight);
     }
     break;
