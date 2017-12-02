@@ -982,6 +982,83 @@ typedef struct OMX_PARAM_MACROBLOCKSTYPE {
     OMX_U32 nMacroblocks;
 } OMX_PARAM_MACROBLOCKSTYPE;
 
+
+#ifdef AVS80
+/**
+ * Aspects of color.
+ */
+
+// NOTE: this structure is expected to grow in the future if new color aspects are
+// added to codec bitstreams. OMX component should not require a specific nSize
+// though could verify that nSize is at least the size of the structure at the
+// time of implementation. All new fields will be added at the end of the structure
+// ensuring backward compatibility.
+
+typedef enum OMX_RANGE {
+    RangeUnspecified,
+    RangeFull,
+    RangeLimited,
+    RangeOther = 0xff,
+} OMX_RANGE;
+
+typedef enum OMX_PRIMARIES {
+    PrimariesUnspecified,
+    PrimariesBT709_5,		// Rec.ITU-R BT.709-5 or equivalent
+    PrimariesBT470_6M,		// Rec.ITU-R BT.470-6 System M or equivalent
+    PrimariesBT601_6_625,	// Rec.ITU-R BT.601-6 625 or equivalent
+    PrimariesBT601_6_525,	// Rec.ITU-R BT.601-6 525 or equivalent
+    PrimariesGenericFilm,	// Generic Film
+    PrimariesBT2020,		// Rec.ITU-R BT.2020 or equivalent
+    PrimariesOther = 0xff,
+} OMX_PRIMARIES;
+
+typedef enum OMX_TRANSFER {
+    TransferUnspecified,
+    TransferLinear, 		// Linear transfer characteristics
+    TransferSRGB,			// sRGB or equivalent
+    TransferSMPTE170M,		// SMPTE 170M or equivalent (e.g. BT.601/709/2020)
+    TransferGamma22,		// Assumed display gamma 2.2
+    TransferGamma28,		// Assumed display gamma 2.8
+    TransferST2084, 		// SMPTE ST 2084 for 10/12/14/16 bit systems
+    TransferHLG,			// ARIB STD-B67 hybrid-log-gamma
+    // transfers unlikely to be required by Android
+    TransferSMPTE240M = 0x40, // SMPTE 240M
+    TransferXvYCC,			// IEC 61966-2-4
+    TransferBT1361, 		// Rec.ITU-R BT.1361 extended gamut
+    TransferST428,			// SMPTE ST 428-1
+    TransferOther = 0xff,
+} OMX_TRANSFER;
+
+typedef enum OMX_MATRIXCOEFFS {
+    MatrixUnspecified,
+    MatrixBT709_5,			// Rec.ITU-R BT.709-5 or equivalent
+    MatrixBT470_6M, 		// KR=0.30, KB=0.11 or equivalent
+    MatrixBT601_6,			// Rec.ITU-R BT.601-6 625 or equivalent
+    MatrixSMPTE240M,		// SMPTE 240M or equivalent
+    MatrixBT2020,			// Rec.ITU-R BT.2020 non-constant luminance
+    MatrixBT2020Constant,	// Rec.ITU-R BT.2020 constant luminance
+    MatrixOther = 0xff,
+} OMX_MATRIXCOEFFS;
+
+typedef struct OMX_COLORASPECTS {
+    OMX_RANGE mRange;                // IN/OUT
+    OMX_PRIMARIES mPrimaries;        // IN/OUT
+    OMX_TRANSFER mTransfer;          // IN/OUT
+    OMX_MATRIXCOEFFS mMatrixCoeffs;  // IN/OUT
+} OMX_COLORASPECTS;
+
+typedef struct OMX_CONFIG_DESCRIBECOLORASPECTSPARAMS {
+    OMX_U32  nSize;                // IN
+    OMX_VERSIONTYPE nVersion;      // IN
+    OMX_U32  nPortIndex;           // IN
+    OMX_BOOL bRequestingDataSpace; // IN
+    OMX_BOOL bDataSpaceChanged;    // IN
+    OMX_U32  nPixelFormat;         // IN
+    OMX_U32  nDataSpace;           // OUT
+    OMX_COLORASPECTS sAspects;  // IN/OUT
+} OMX_CONFIG_DESCRIBECOLORASPECTSPARAMS;
+#endif
+
 /**
  * AVC Slice Mode modes
  *

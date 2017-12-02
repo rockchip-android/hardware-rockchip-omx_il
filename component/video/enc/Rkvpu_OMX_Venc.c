@@ -1374,7 +1374,12 @@ OMX_ERRORTYPE Rkvpu_Enc_ComponentInit(OMX_COMPONENTTYPE *pOMXComponent)
 
     pVideoEnc->bRgb2yuvFlag = OMX_FALSE;
     pVideoEnc->bPixel_format = -1;
-
+#ifdef AVS80
+    pVideoEnc->ConfigColorAspects.sAspects.mRange = RangeUnspecified;
+    pVideoEnc->ConfigColorAspects.sAspects.mPrimaries = PrimariesUnspecified;
+    pVideoEnc->ConfigColorAspects.sAspects.mMatrixCoeffs = MatrixUnspecified;
+    pVideoEnc->ConfigColorAspects.sAspects.mTransfer = TransferUnspecified;
+#endif
     Rkvpu_Enc_DebugSwitchfromPropget(pRockchipComponent);
 
     pVideoEnc->vpu_ctx = p_vpu_ctx;

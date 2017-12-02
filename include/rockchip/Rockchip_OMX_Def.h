@@ -133,6 +133,9 @@ typedef enum _ROCKCHIP_OMX_INDEXTYPE {
 #define ROCKCHIP_INDEX_PARAM_EXTENDED_VIDEO "OMX.Topaz.index.param.extended_video"
     OMX_IndexParamRkEncExtendedVideo        = 0x7F050003,
 
+#define ROCKCHIP_INDEX_PARAM_DSECRIBECOLORASPECTS "OMX.google.android.index.describeColorAspects"
+    OMX_IndexParamRkDescribeColorAspects 	= 0x7F000062,
+
     /* for Android PV OpenCore*/
     OMX_COMPONENT_CAPABILITY_TYPE_INDEX     = 0xFF7A347
 } ROCKCHIP_OMX_INDEXTYPE;

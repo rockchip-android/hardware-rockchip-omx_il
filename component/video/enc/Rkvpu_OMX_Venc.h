@@ -126,6 +126,9 @@ typedef struct _RKVPU_OMX_VIDEOENC_COMPONENT {
     //add by xlm for use mpp or vpuapi
     OMX_BOOL bIsUseMpp;
     OMX_BOOL bIsNewVpu;
+#ifdef AVS80
+    OMX_CONFIG_DESCRIBECOLORASPECTSPARAMS ConfigColorAspects;
+#endif
     OMX_S32 (*rkvpu_open_cxt)(VpuCodecContext_t **ctx);
     OMX_S32 (*rkvpu_close_cxt)(VpuCodecContext_t **ctx);
 
