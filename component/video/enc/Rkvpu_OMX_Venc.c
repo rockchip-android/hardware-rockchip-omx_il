@@ -328,6 +328,7 @@ OMX_ERRORTYPE Rkvpu_Enc_ReConfig(OMX_COMPONENTTYPE *pOMXComponent, OMX_U32 new_w
             }
         }
     }
+
     p_vpu_ctx->videoCoding = codecId;
     p_vpu_ctx->codecType = CODEC_ENCODER;
     p_vpu_ctx->private_data = malloc(sizeof(EncParameter_t));
@@ -599,6 +600,7 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
                                                              OMX_IndexParamPortDefinition, NULL);
                 goto EXIT;
             }
+
             aInput.buf =  NULL;
             aInput.bufPhyAddr = aPhy_address;
             aInput.size = len;
@@ -612,6 +614,10 @@ OMX_BOOL Rkvpu_SendInputData(OMX_COMPONENTTYPE *pOMXComponent)
             } else {
                 aInput.buf =  inputUseBuffer->bufferHeader->pBuffer + inputUseBuffer->usedDataLen;
                 aInput.bufPhyAddr = 0x80000000;
+                if (pVideoEnc->fp_enc_in) {
+                    fwrite(aInput.buf, 1, inputUseBuffer->dataLen, pVideoEnc->fp_enc_in);
+                    fflush(pVideoEnc->fp_enc_in);
+                } 
                 // while bufPhyAddr < 0 && buf != NULL
                 // assign bufPhyAddr 8000000 to match rk_vpuapi to copy data from aInput.buf
             }
@@ -1422,6 +1428,41 @@ OMX_ERRORTYPE Rkvpu_Enc_GetEncParams(OMX_COMPONENTTYPE *pOMXComponent,EncParamet
             (*encParams)->profileIdc   = BASELINE_PROFILE;
             break;
         }
+        switch (pVideoEnc->eControlRate[OUTPUT_PORT_INDEX]) {
+            case OMX_Video_ControlRateDisable:
+                (*encParams)->rc_mode = Video_RC_Mode_Disable;
+            break;
+            case OMX_Video_ControlRateVariable:
+                (*encParams)->rc_mode = Video_RC_Mode_VBR;
+            break;
+            case OMX_Video_ControlRateConstant:
+                (*encParams)->rc_mode = Video_RC_Mode_CBR;
+            break;
+            default:
+                omx_err("unknown rate control mode = %d, forced to VBR mode",
+                    pVideoEnc->eControlRate[OUTPUT_PORT_INDEX]);
+                (*encParams)->rc_mode = Video_RC_Mode_VBR;
+            break;
+        }
+        switch (pRockchipInputPort->portDefinition.format.video.eColorFormat) {
+            case OMX_COLOR_FormatAndroidOpaque: {
+                (*encParams)->rc_mode = Video_RC_Mode_VBR;
+                (*encParams)->format = VPU_H264ENC_RGB888;
+            }
+            break;
+            case OMX_COLOR_FormatYUV420Planar: {
+                (*encParams)->format = VPU_H264ENC_YUV420_PLANAR;
+            }
+            break;
+            case OMX_COLOR_FormatYUV420SemiPlanar: {
+                (*encParams)->format = VPU_H264ENC_YUV420_SEMIPLANAR;
+            }
+            break;
+            default:
+                omx_err("inputPort colorformat is not support format = %d",
+                    pRockchipInputPort->portDefinition.format.video.eColorFormat);
+            break;
+        }
         ConvertOmxAvcLevelToAvcSpecLevel((int32_t)pVideoEnc->AVCComponent[OUTPUT_PORT_INDEX].eLevel, (AVCLevel *)&((*encParams)->levelIdc));
     }else if (pVideoEnc->codecId == (OMX_VIDEO_CODINGTYPE)OMX_VIDEO_CodingHEVC) {
         (*encParams)->enableCabac   = 0;
@@ -1463,8 +1504,8 @@ OMX_ERRORTYPE Rkvpu_Enc_GetEncParams(OMX_COMPONENTTYPE *pOMXComponent,EncParamet
             }
             break;
             default:
-            omx_err("inputPort colorformat is not support format = %d",
-                         pRockchipInputPort->portDefinition.format.video.eColorFormat);
+                omx_err("inputPort colorformat is not support format = %d",
+                    pRockchipInputPort->portDefinition.format.video.eColorFormat);
             break;
         }
     }
