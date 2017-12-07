@@ -570,6 +570,23 @@ OMX_BOOL Rkvpu_Post_OutputFrame(OMX_COMPONENTTYPE *pOMXComponent)
             Rockchip_ResetDataBuffer(outputUseBuffer);
         }
 
+        /*
+         *when decode frame (width > 4096 || Height > 2048), mpp not to check it
+         *do not check here, ACodec will alloc large 4K size memory
+         *cause lower memory fault
+        */
+        if(pframe->DisplayWidth > 4096 ||  pframe->DisplayHeight > 2048) {
+            pRockchipComponent->pCallbacks->EventHandler((OMX_HANDLETYPE)pOMXComponent,
+                                                         pRockchipComponent->callbackData,
+                                                         OMX_EventError, OMX_ErrorUndefined, 0, NULL);
+            if (pframe->vpumem.phy_addr > 0) {
+                VPUMemLink(&pframe->vpumem);
+                VPUFreeLinear(&pframe->vpumem);
+            }
+            ret = OMX_FALSE;
+            goto EXIT;
+        }
+
         if ((pOutput.size > 0) && (!CHECK_PORT_BEING_FLUSHED(pOutputPort))) {
             OMX_COLOR_FORMATTYPE eColorFormat = Rockchip_OSAL_CheckFormat(pRockchipComponent, pframe);
             if ((pInputPort->portDefinition.format.video.nFrameWidth != pframe->DisplayWidth) ||
@@ -710,6 +727,24 @@ OMX_BOOL Rkvpu_Post_OutputFrame(OMX_COMPONENTTYPE *pOMXComponent)
                 }
                 Rkvpu_OutputBufferReturn(pOMXComponent, outputUseBuffer);
             }
+
+            /*
+             *when decode frame (width > 4096 || Height > 2048), mpp not to check it.
+             *do not check here, ACodec will alloc large 4K size memory.
+             *cause lower memory fault
+            */
+            if(pframe.DisplayWidth > 4096 ||  pframe.DisplayHeight > 2048) {
+                pRockchipComponent->pCallbacks->EventHandler((OMX_HANDLETYPE)pOMXComponent,
+                                                             pRockchipComponent->callbackData,
+                                                             OMX_EventError, OMX_ErrorUndefined, 0, NULL);
+                if (pframe.vpumem.phy_addr > 0) {
+                    VPUMemLink(&pframe.vpumem);
+                    VPUFreeLinear(&pframe.vpumem);
+                }
+                ret = OMX_FALSE;
+                goto EXIT;
+            }
+
 
             if ((pOutput.size > 0) && (!CHECK_PORT_BEING_FLUSHED(pOutputPort))) {
                 if (pInputPort->portDefinition.format.video.nFrameWidth != pframe.DisplayWidth ||
